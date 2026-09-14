@@ -1,0 +1,55 @@
+{
+  "schema_version": "scenicpilot-product-demo-v1",
+  "demo": true,
+  "scenic_id": "zhuhai-chimelong",
+  "notice": "演示结果不代表景区当前票价、开放时间、场次或服务承诺。",
+  "scenarios": [
+    {
+      "case_id": "demo-faq-grounded",
+      "title": "带引用的景区问答",
+      "query": "珠海长隆有哪些主题内容？",
+      "flow": "invoke",
+      "expected": {
+        "intent": "faq",
+        "minimum_citations": 1,
+        "terminal_trace": "grounded_answer"
+      }
+    },
+    {
+      "case_id": "demo-itinerary-hitl",
+      "title": "带人工审批的一日行程",
+      "query": "一家三口玩一天，预算 1000 元，怎么安排？",
+      "flow": "approve_after_restart",
+      "expected": {
+        "intent": "itinerary",
+        "paused_status": "awaiting_approval",
+        "approval_status": "approved",
+        "minimum_stops": 1
+      }
+    },
+    {
+      "case_id": "demo-weather-offline-boundary",
+      "title": "独立天气意图与离线降级",
+      "query": "明天珠海天气怎么样，适合户外活动吗？",
+      "flow": "invoke",
+      "expected": {
+        "intent": "weather",
+        "answer_status": "requires_live_check",
+        "maximum_citations": 0,
+        "terminal_trace": "weather_answer",
+        "tool_names": ["weather"]
+      }
+    },
+    {
+      "case_id": "demo-refusal-boundary",
+      "title": "知识边界拒答",
+      "query": "珠海长隆昨天的实时客流精确是多少？",
+      "flow": "invoke",
+      "expected": {
+        "intent": "faq",
+        "answer_status": "refused",
+        "maximum_citations": 0
+      }
+    }
+  ]
+}

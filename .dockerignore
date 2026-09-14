@@ -1,0 +1,17 @@
+.git
+.github
+.venv
+.env
+*.egg-info
+__pycache__
+*.py[cod]
+.pytest_cache
+.pytest-tmp
+.coverage
+htmlcov
+data/index
+data/raw
+data/runtime
+*.db
+*.sqlite3
+debug.log

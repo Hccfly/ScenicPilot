@@ -1,0 +1,60 @@
+{"case_id":"eval-ret-001","group":"retrieval","fixture":"ret-001","description":"鲸鲨馆直接命中"}
+{"case_id":"eval-ret-002","group":"retrieval","fixture":"ret-002","description":"海牛口语问法"}
+{"case_id":"eval-ret-003","group":"retrieval","fixture":"ret-003","description":"鹦鹉过山车项目"}
+{"case_id":"eval-ret-004","group":"retrieval","fixture":"ret-004","description":"中华白海豚展馆"}
+{"case_id":"eval-ret-005","group":"retrieval","fixture":"ret-005","description":"海豚剧场"}
+{"case_id":"eval-ret-006","group":"retrieval","fixture":"ret-006","description":"海豚岛"}
+{"case_id":"eval-ret-007","group":"retrieval","fixture":"ret-007","description":"5D 城堡影院"}
+{"case_id":"eval-ret-008","group":"retrieval","fixture":"ret-008","description":"海底互动船"}
+{"case_id":"eval-ret-009","group":"retrieval","fixture":"ret-009","description":"旋转水战"}
+{"case_id":"eval-ret-010","group":"retrieval","fixture":"ret-010","description":"海洋瞭望塔"}
+{"case_id":"eval-ret-011","group":"retrieval","fixture":"ret-011","description":"飞船与海洋鲨鱼馆消歧"}
+{"case_id":"eval-ret-012","group":"retrieval","fixture":"ret-012","description":"虎鲸科普剧场"}
+{"case_id":"eval-ret-013","group":"retrieval","fixture":"ret-013","description":"长江江豚馆"}
+{"case_id":"eval-ret-014","group":"retrieval","fixture":"ret-014","description":"水母城堡"}
+{"case_id":"eval-ret-015","group":"retrieval","fixture":"ret-015","description":"深海游乐场"}
+{"case_id":"eval-ret-016","group":"retrieval","fixture":"ret-016","description":"宇宙世界"}
+{"case_id":"eval-ret-017","group":"retrieval","fixture":"ret-017","description":"热带雨林馆"}
+{"case_id":"eval-ret-018","group":"retrieval","fixture":"ret-018","description":"珊瑚馆"}
+{"case_id":"eval-ret-019","group":"retrieval","fixture":"ret-019","description":"飞船餐饮与海洋餐饮消歧"}
+{"case_id":"eval-ret-020","group":"retrieval","fixture":"ret-020","description":"海洋王国餐饮"}
+{"case_id":"eval-ret-021","group":"retrieval","fixture":"ret-021","description":"企鹅酒店餐饮"}
+{"case_id":"eval-ret-022","group":"retrieval","fixture":"ret-022","description":"横琴湾酒店餐饮"}
+{"case_id":"eval-ret-023","group":"retrieval","fixture":"ret-023","description":"五家酒店总览"}
+{"case_id":"eval-ret-024","group":"retrieval","fixture":"ret-024","description":"飞船酒店"}
+{"case_id":"eval-ret-025","group":"retrieval","fixture":"ret-025","description":"迎海酒店公寓"}
+{"case_id":"eval-ret-026","group":"retrieval","fixture":"ret-026","description":"珠海市内公交"}
+{"case_id":"eval-ret-027","group":"retrieval","fixture":"ret-027","description":"港澳口岸交通"}
+{"case_id":"eval-ret-028","group":"retrieval","fixture":"ret-028","description":"度假区穿梭巴"}
+{"case_id":"eval-ret-029","group":"retrieval","fixture":"ret-029","description":"海洋王国表演"}
+{"case_id":"eval-ret-030","group":"retrieval","fixture":"ret-030","description":"飞船乐园主题秀"}
+{"case_id":"eval-ans-001","group":"trusted_answer","fixture":"ret-001","expectation":"answerable","description":"鲸鲨馆带引用回答"}
+{"case_id":"eval-ans-002","group":"trusted_answer","fixture":"ret-011","expectation":"answerable","description":"跨园区消歧回答"}
+{"case_id":"eval-ans-003","group":"trusted_answer","fixture":"ret-019","expectation":"answerable","description":"餐饮来源绑定"}
+{"case_id":"eval-ans-004","group":"trusted_answer","fixture":"ret-023","expectation":"answerable","description":"酒店总览引用"}
+{"case_id":"eval-ans-005","group":"trusted_answer","fixture":"ret-028","expectation":"answerable","description":"交通易变信息提示"}
+{"case_id":"eval-ans-006","group":"trusted_answer","fixture":"ans-ref-001","expectation":"refusal","description":"不存在的量子课程"}
+{"case_id":"eval-ans-007","group":"trusted_answer","fixture":"ans-ref-002","expectation":"refusal","description":"不存在的火星基地数据"}
+{"case_id":"eval-ans-008","group":"trusted_answer","fixture":"ans-ref-003","expectation":"refusal","description":"不存在的地下实验室"}
+{"case_id":"eval-ans-009","group":"trusted_answer","fixture":"ans-ref-004","expectation":"refusal","description":"缺少实时排队数据"}
+{"case_id":"eval-ans-010","group":"trusted_answer","fixture":"ans-ref-005","expectation":"refusal","description":"缺少实时票务库存"}
+{"case_id":"eval-plan-001","group":"planning","scenario":"family_day","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"亲子一日结构化行程"}
+{"case_id":"eval-plan-002","group":"planning","scenario":"indoor_half_day","query":"雨天想看室内科普内容，半天怎么玩？","description":"室内科普半日行程"}
+{"case_id":"eval-plan-003","group":"planning","scenario":"marine_half_day","query":"半天一定要看海洋动物，怎么安排？","description":"海洋偏好约束"}
+{"case_id":"eval-plan-004","group":"planning","scenario":"senior_with_origin","query":"带老人从珠海站出发轻松玩一天，预算 1000 元","description":"老人节奏与起点路线"}
+{"case_id":"eval-plan-005","group":"planning","scenario":"insufficient_budget","query":"一家三口玩一天，预算 50 元，怎么安排？","description":"不可满足预算拒绝"}
+{"case_id":"eval-fault-001","group":"fault_injection","scenario":"weather_timeout","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"天气工具超时不取消同批工具"}
+{"case_id":"eval-fault-002","group":"fault_injection","scenario":"budget_exception","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"预算工具异常后约束标记未核验"}
+{"case_id":"eval-fault-003","group":"fault_injection","scenario":"distance_empty","query":"从珠海站出发，一家三口玩一天，预算 1000 元","description":"路线成功状态但缺少耗时"}
+{"case_id":"eval-fault-004","group":"fault_injection","scenario":"hours_dirty","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"营业状态字段类型错误"}
+{"case_id":"eval-fault-005","group":"fault_injection","scenario":"budget_negative","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"负数预算估算被拒绝"}
+{"case_id":"eval-fault-006","group":"fault_injection","scenario":"model_unknown_source","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"模型注入未知 source_id 后回退"}
+{"case_id":"eval-fault-007","group":"fault_injection","scenario":"empty_retrieval","query":"珠海长隆有哪些主题内容？","description":"检索空结果触发可信拒答"}
+{"case_id":"eval-recovery-001","group":"recovery_idempotency","scenario":"restart_then_approve","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"中断后重启并批准"}
+{"case_id":"eval-recovery-002","group":"recovery_idempotency","scenario":"reject_without_tools","query":"带老人从珠海站出发玩一天","description":"人工拒绝保持零副作用"}
+{"case_id":"eval-recovery-003","group":"recovery_idempotency","scenario":"duplicate_start","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"重复 start 不重复工具"}
+{"case_id":"eval-recovery-004","group":"recovery_idempotency","scenario":"duplicate_resume_and_conflict","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"重复 resume 重放且异参冲突"}
+{"case_id":"eval-budget-001","group":"call_budget","scenario":"zero_budget","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"零次工具调用额度"}
+{"case_id":"eval-budget-002","group":"call_budget","scenario":"single_call_budget","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"一次调用后截断剩余工具"}
+{"case_id":"eval-loop-001","group":"loop_limit","scenario":"zero_revisions","query":"一家三口玩一天，预算 50 元，怎么安排？","description":"零修订额度立即终止"}
+{"case_id":"eval-loop-002","group":"loop_limit","scenario":"one_revision","query":"一家三口玩一天，预算 50 元，怎么安排？","description":"一次修订后终止"}

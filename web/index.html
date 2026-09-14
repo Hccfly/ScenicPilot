@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ScenicPilot：面向珠海长隆场景的可信问答与约束行程规划演示。">
+  <title>ScenicPilot · 珠海长隆智能导览</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="ScenicPilot 首页">
+      <span class="brand-mark" aria-hidden="true">SP</span>
+      <span><strong>ScenicPilot</strong><small>Zhuhai · Chimelong</small></span>
+    </a>
+    <div class="service-state" id="service-state" aria-live="polite">
+      <span class="state-dot"></span><span>正在检查服务</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Grounded travel agent</p>
+      <h1>让每一条行程建议，<br><em>都有来源、有边界。</em></h1>
+      <p class="hero-copy">面向珠海长隆的可追溯问答与约束行程规划。检索证据、外部工具、规划校验和人工审批都保留在同一条执行轨迹中。</p>
+    </section>
+
+    <section class="workspace" aria-label="智能导览控制台">
+      <div class="console-card">
+        <div class="card-heading">
+          <div><span class="section-index">01</span><h2>提出你的需求</h2></div>
+          <span class="offline-tag">离线演示可用</span>
+        </div>
+
+        <div class="suggestions" aria-label="示例问题">
+          <button type="button" data-query="带孩子玩一天，预算 1000 元，怎么安排？">亲子一日游</button>
+          <button type="button" data-query="珠海长隆有哪些适合带孩子看的表演？">表演推荐</button>
+          <button type="button" data-query="明天珠海天气怎么样，适合户外活动吗？">天气与活动</button>
+          <button type="button" data-query="珠海长隆昨天的实时客流精确是多少？">拒答边界</button>
+        </div>
+
+        <form id="chat-form">
+          <label for="message" class="sr-only">输入问题</label>
+          <textarea id="message" rows="4" maxlength="2000" required>带孩子玩一天，预算 1000 元，怎么安排？</textarea>
+          <div class="form-actions">
+            <label class="approval-switch">
+              <input id="require-approval" type="checkbox" checked>
+              <span>行程生成后需要我确认</span>
+            </label>
+            <button class="primary-button" id="submit-button" type="submit">
+              <span>开始规划</span><span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </form>
+
+        <ol class="progress" id="progress" hidden aria-label="处理进度">
+          <li data-step="retrieve"><span>1</span>检索与工具</li>
+          <li data-step="plan"><span>2</span>约束规划</li>
+          <li data-step="verify"><span>3</span>验证与交付</li>
+        </ol>
+
+        <section class="approval-panel" id="approval-panel" hidden aria-live="polite">
+          <div>
+            <p class="eyebrow">Human in the loop</p>
+            <h3>规划已暂停，等待你的决定</h3>
+            <p>确认后继续提交结果；拒绝时会保留原因和治理轨迹。</p>
+          </div>
+          <div class="approval-actions">
+            <button type="button" class="secondary-button" id="reject-button">拒绝</button>
+            <button type="button" class="primary-button" id="approve-button">确认行程</button>
+          </div>
+        </section>
+
+        <section class="result" id="result" hidden aria-live="polite">
+          <div class="result-heading">
+            <div><span class="section-index">02</span><h2>规划结果</h2></div>
+            <span class="result-status" id="result-status"></span>
+          </div>
+          <p class="answer" id="answer"></p>
+          <div class="badges" id="badges"></div>
+
+          <section class="result-block" id="plan-block" hidden>
+            <h3>行程安排</h3><div class="timeline" id="plan"></div>
+          </section>
+          <section class="result-block warning-block" id="warning-block" hidden>
+            <h3>约束与提示</h3><ul id="warnings"></ul>
+          </section>
+          <section class="result-block" id="citation-block" hidden>
+            <h3>证据来源</h3><div class="citations" id="citations"></div>
+          </section>
+          <details class="trace-block">
+            <summary>查看执行轨迹与治理信息</summary>
+            <pre id="trace"></pre>
+          </details>
+        </section>
+      </div>
+
+      <aside class="side-card">
+        <p class="eyebrow">Runtime profile</p>
+        <h2>当前运行环境</h2>
+        <dl class="runtime-list">
+          <div><dt>模式</dt><dd id="runtime-mode">—</dd></div>
+          <div><dt>知识场景</dt><dd id="runtime-scenic">—</dd></div>
+          <div><dt>工具</dt><dd id="runtime-tools">—</dd></div>
+          <div><dt>模型</dt><dd id="runtime-llm">—</dd></div>
+        </dl>
+        <div class="trust-note">
+          <h3>可信链路</h3>
+          <p>混合检索 → 引用核验 → 工具调用 → StateGraph 规划 → 约束验证 → 人工审批</p>
+        </div>
+        <p class="demo-note">页面默认使用仓库内演示资料。价格、营业时间、场次与交通等时效信息，出行前请以景区官方发布为准。本项目与珠海长隆无隶属关系。</p>
+      </aside>
+    </section>
+  </main>
+
+  <footer><span>ScenicPilot</span><span>Grounded answers · Governed actions</span></footer>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>
