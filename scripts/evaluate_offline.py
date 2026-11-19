@@ -45,7 +45,7 @@ def parse_args() -> argparse.Namespace:
         help="Run one group; repeat to select multiple groups.",
     )
     parser.add_argument("--fail-fast", action="store_true")
-    parser.add_argument("--list", action="store_true", help="List the 60 cases.")
+    parser.add_argument("--list", action="store_true", help="List the 100 cases.")
     return parser.parse_args()
 
 

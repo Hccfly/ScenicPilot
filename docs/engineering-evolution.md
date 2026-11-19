@@ -18,7 +18,7 @@ ScenicPilot 不是按框架示例堆叠功能，而是从珠海长隆这一真�
 
 中文景区问法同时包含专名、口语别称和类别约束，单一检索通道很难兼顾。因此检索层组合 BM25、本地 BGE 与 RRF，并加入 Jieba 领域词典、确定性查询扩展和 metadata 过滤。
 
-结果集采用“同 parent 只保留一个 child、同 source 最多两个 parent、category 默认软加权”的策略，既保留跨来源证据，又控制同页重复和主题噪声。30 条 retrieval-only case 用于持续验证召回质量。详情见 [混合检索设计](hybrid-retrieval.md)。
+结果集采用“同 parent 只保留一个 child、同 source 最多两个 parent、category 默认软加权”的策略，既保留跨来源证据，又控制同页重复和主题噪声。45 条 retrieval-only case 用于持续验证召回质量。详情见 [混合检索设计](hybrid-retrieval.md)。
 
 ## 从检索命中到可信回答
 

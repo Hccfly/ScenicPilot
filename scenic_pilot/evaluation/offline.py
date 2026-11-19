@@ -38,13 +38,13 @@ from scenic_pilot.tools.managed import ToolSuite
 
 
 EVALUATION_GROUP_COUNTS = {
-    "retrieval": 30,
-    "trusted_answer": 10,
-    "planning": 5,
-    "fault_injection": 7,
-    "recovery_idempotency": 4,
-    "call_budget": 2,
-    "loop_limit": 2,
+    "retrieval": 45,
+    "trusted_answer": 21,
+    "planning": 10,
+    "fault_injection": 11,
+    "recovery_idempotency": 7,
+    "call_budget": 3,
+    "loop_limit": 3,
 }
 
 
@@ -192,6 +192,38 @@ class NegativeBudget:
             "provider": "eval-negative-budget",
             "estimated_cost": -100.0,
             "currency": "CNY",
+        }
+
+
+class RaisingDistance:
+    def estimate(self, *, origin: str, destination: str) -> dict[str, object]:
+        raise RuntimeError("injected distance failure")
+
+
+class RaisingHours:
+    def check(self, *, venue: str, date: str | None = None) -> dict[str, object]:
+        raise TimeoutError("injected opening-hours timeout")
+
+
+class MalformedBudget:
+    def estimate(self, *, party_size: int, duration_minutes: int) -> dict[str, object]:
+        return {
+            "status": "estimated",
+            "provider": "eval-malformed-budget",
+            "estimated_cost": "unknown",
+            "currency": "CNY",
+        }
+
+
+class NegativeDistance:
+    def estimate(self, *, origin: str, destination: str) -> dict[str, object]:
+        return {
+            "status": "ok",
+            "provider": "eval-negative-distance",
+            "origin": origin,
+            "destination": destination,
+            "distance_meters": 1_000,
+            "duration_minutes": -5,
         }
 
 
@@ -912,6 +944,78 @@ class OfflineEvaluator:
                     ),
                 ]
             )
+        elif scenario == "three_hour_window":
+            assertions.append(
+                _check(
+                    "three_hour_duration_respected",
+                    0 < int(plan.get("duration_minutes", 0)) <= 180,
+                    expected="0 < duration <= 180",
+                    actual=plan.get("duration_minutes"),
+                )
+            )
+        elif scenario == "explicit_start_time":
+            first_start = stops[0].get("start_time") if stops else None
+            assertions.append(
+                _check(
+                    "requested_start_time_respected",
+                    first_start == "10:30",
+                    expected="10:30",
+                    actual=first_start,
+                )
+            )
+        elif scenario == "senior_half_day":
+            assertions.extend(
+                [
+                    _check(
+                        "senior_stop_duration",
+                        bool(stops)
+                        and all(int(stop.get("duration_minutes", 0)) <= 90 for stop in stops),
+                        expected="each stop <= 90 minutes",
+                        actual=[stop.get("duration_minutes") for stop in stops],
+                    ),
+                    _check(
+                        "senior_half_day_duration",
+                        int(plan.get("duration_minutes", 0)) <= 240,
+                        expected="<= 240",
+                        actual=plan.get("duration_minutes"),
+                    ),
+                ]
+            )
+        elif scenario == "budget_boundary":
+            assertions.extend(
+                [
+                    _check(
+                        "budget_not_falsely_exceeded",
+                        float(plan.get("estimated_cost", 0)) <= 300,
+                        expected="<= 300",
+                        actual=plan.get("estimated_cost"),
+                    ),
+                    _check(
+                        "boundary_budget_not_refused",
+                        result.get("answer_status") != "refused",
+                        expected="not refused",
+                        actual=result.get("answer_status"),
+                    ),
+                ]
+            )
+        elif scenario == "one_hour_window":
+            assertions.extend(
+                [
+                    _check(
+                        "short_window_not_overplanned",
+                        0 < int(plan.get("duration_minutes", 0)) <= 60,
+                        expected="0 < duration <= 60",
+                        actual=plan.get("duration_minutes"),
+                    ),
+                    _check(
+                        "short_window_prefers_short_stops",
+                        bool(stops)
+                        and all(int(stop.get("duration_minutes", 0)) <= 60 for stop in stops),
+                        expected="each stop <= 60 minutes",
+                        actual=[stop.get("duration_minutes") for stop in stops],
+                    ),
+                ]
+            )
         return EvaluationCaseResult(
             case.case_id,
             case.group,
@@ -941,6 +1045,16 @@ class OfflineEvaluator:
             )
         elif scenario == "empty_retrieval":
             dependencies = _replace_dependencies(dependencies, index=EmptyIndex())
+        elif scenario == "distance_exception":
+            dependencies = _replace_dependencies(dependencies, distance=RaisingDistance())
+        elif scenario == "hours_timeout":
+            dependencies = _replace_dependencies(
+                dependencies, opening_hours=RaisingHours()
+            )
+        elif scenario == "budget_malformed":
+            dependencies = _replace_dependencies(dependencies, budget=MalformedBudget())
+        elif scenario == "distance_negative":
+            dependencies = _replace_dependencies(dependencies, distance=NegativeDistance())
         else:
             raise ValueError(f"unsupported fault scenario: {scenario}")
         envelope, result = self._run_agent(case, dependencies)
@@ -1091,6 +1205,97 @@ class OfflineEvaluator:
                             "citations": result.get("citations"),
                             "claims": result.get("claims"),
                         },
+                    ),
+                ]
+            )
+        elif scenario == "distance_exception":
+            routes = _tool_outputs(result, "distance")
+            assertions.extend(
+                [
+                    _check(
+                        "route_exception_is_classified",
+                        bool(routes)
+                        and all(
+                            item.get("degradation_reason")
+                            == "uncaught_tool_exception"
+                            for item in routes
+                        ),
+                        expected="uncaught_tool_exception",
+                        actual=routes,
+                    ),
+                    _check(
+                        "route_exception_warns",
+                        "route_unverified" in _violation_codes(result),
+                        expected="route_unverified",
+                        actual=_violation_codes(result),
+                    ),
+                ]
+            )
+        elif scenario == "hours_timeout":
+            hours = _tool_outputs(result, "opening_hours")
+            assertions.extend(
+                [
+                    _check(
+                        "hours_timeout_is_classified",
+                        bool(hours)
+                        and all(
+                            item.get("degradation_reason")
+                            == "uncaught_tool_exception"
+                            for item in hours
+                        ),
+                        expected="uncaught_tool_exception",
+                        actual=hours,
+                    ),
+                    _check(
+                        "hours_timeout_warns",
+                        "hours_unverified" in _violation_codes(result),
+                        expected="hours_unverified",
+                        actual=_violation_codes(result),
+                    ),
+                ]
+            )
+        elif scenario == "budget_malformed":
+            budget = _tool_outputs(result, "budget")
+            assertions.extend(
+                [
+                    _check(
+                        "malformed_budget_rejected",
+                        bool(budget)
+                        and budget[0].get("degradation_reason")
+                        == "invalid_tool_result",
+                        expected="invalid_tool_result",
+                        actual=budget[0] if budget else None,
+                    ),
+                    _check(
+                        "malformed_budget_not_verified",
+                        "budget_unverified" in _violation_codes(result),
+                        expected="budget_unverified",
+                        actual=_violation_codes(result),
+                    ),
+                    _check(
+                        "malformed_budget_not_written_to_plan",
+                        float((result.get("plan") or {}).get("estimated_cost", 0)) >= 0,
+                        expected=">= 0",
+                        actual=(result.get("plan") or {}).get("estimated_cost"),
+                    ),
+                ]
+            )
+        elif scenario == "distance_negative":
+            routes = _tool_outputs(result, "distance")
+            assertions.extend(
+                [
+                    _check(
+                        "negative_duration_kept_in_tool_output",
+                        bool(routes)
+                        and all(item.get("duration_minutes") == -5 for item in routes),
+                        expected=-5,
+                        actual=[item.get("duration_minutes") for item in routes],
+                    ),
+                    _check(
+                        "negative_duration_warns",
+                        "route_unverified" in _violation_codes(result),
+                        expected="route_unverified",
+                        actual=_violation_codes(result),
                     ),
                 ]
             )
@@ -1329,6 +1534,172 @@ class OfflineEvaluator:
                         "tool_calls": _tool_call_count(tools),
                     }
                 )
+            elif scenario == "reject_then_replay":
+                paused = runtime.start(
+                    case.query or "",
+                    thread_id=case.case_id,
+                    idempotency_key="start-1",
+                    require_approval=True,
+                )
+                rejected = runtime.resume(
+                    thread_id=case.case_id,
+                    approved=False,
+                    reason="evaluation rejection",
+                    idempotency_key="resume-1",
+                )
+                calls_after_rejection = _tool_call_count(tools)
+                replay = runtime.resume(
+                    thread_id=case.case_id,
+                    approved=False,
+                    reason="evaluation rejection",
+                    idempotency_key="resume-1",
+                )
+                assertions.extend(
+                    [
+                        _check(
+                            "approval_was_requested",
+                            paused.get("status") == "awaiting_approval",
+                            expected="awaiting_approval",
+                            actual=paused.get("status"),
+                        ),
+                        _check(
+                            "rejected_replay_is_idempotent",
+                            replay.get("idempotency_replayed") is True
+                            and replay.get("result") == rejected.get("result"),
+                            expected=True,
+                            actual=replay.get("idempotency_replayed"),
+                        ),
+                        _check(
+                            "rejected_replay_has_zero_tools",
+                            calls_after_rejection == 0
+                            and _tool_call_count(tools) == 0,
+                            expected=0,
+                            actual=_tool_call_count(tools),
+                        ),
+                    ]
+                )
+                observation.update(
+                    {
+                        "status": replay.get("status"),
+                        "approval_status": (
+                            replay.get("result") or {}
+                        ).get("approval_status"),
+                        "replayed": replay.get("idempotency_replayed"),
+                        "tool_calls": _tool_call_count(tools),
+                    }
+                )
+            elif scenario == "restart_then_reject":
+                paused = runtime.start(
+                    case.query or "",
+                    thread_id=case.case_id,
+                    idempotency_key="start-1",
+                    require_approval=True,
+                )
+                calls_before = _tool_call_count(tools)
+                runtime.close()
+                runtime = self._runtime(case, dependencies)
+                recovered = runtime.get_session(case.case_id)
+                rejected = runtime.resume(
+                    thread_id=case.case_id,
+                    approved=False,
+                    reason="evaluation rejection after restart",
+                    idempotency_key="resume-1",
+                )
+                result = rejected.get("result") or {}
+                assertions.extend(
+                    [
+                        _check(
+                            "paused_before_tools",
+                            paused.get("status") == "awaiting_approval"
+                            and calls_before == 0,
+                            expected={"status": "awaiting_approval", "calls": 0},
+                            actual={
+                                "status": paused.get("status"),
+                                "calls": calls_before,
+                            },
+                        ),
+                        _check(
+                            "checkpoint_recovers_after_restart",
+                            recovered.get("status") == "awaiting_approval",
+                            expected="awaiting_approval",
+                            actual=recovered.get("status"),
+                        ),
+                        _check(
+                            "rejection_terminates_after_restart",
+                            rejected.get("status") == "completed"
+                            and result.get("approval_status") == "rejected",
+                            expected="completed/rejected",
+                            actual={
+                                "status": rejected.get("status"),
+                                "approval_status": result.get("approval_status"),
+                            },
+                        ),
+                        _check(
+                            "restart_rejection_has_zero_tools",
+                            _tool_call_count(tools) == 0
+                            and result.get("tool_call_count") == 0,
+                            expected=0,
+                            actual={
+                                "provider_calls": _tool_call_count(tools),
+                                "state_calls": result.get("tool_call_count"),
+                            },
+                        ),
+                    ]
+                )
+                observation.update(
+                    {
+                        "paused_status": paused.get("status"),
+                        "recovered_status": recovered.get("status"),
+                        "completed_status": rejected.get("status"),
+                        "approval_status": result.get("approval_status"),
+                        "tool_calls": _tool_call_count(tools),
+                    }
+                )
+            elif scenario == "duplicate_start_conflict":
+                first = runtime.start(
+                    case.query or "",
+                    thread_id=case.case_id,
+                    idempotency_key="start-1",
+                )
+                calls_after_first = _tool_call_count(tools)
+                conflict = False
+                try:
+                    runtime.start(
+                        "带老人从珠海站出发玩一天",
+                        thread_id=case.case_id,
+                        idempotency_key="start-1",
+                    )
+                except IdempotencyConflict:
+                    conflict = True
+                assertions.extend(
+                    [
+                        _check(
+                            "completed_start_is_returned",
+                            first.get("status") == "completed",
+                            expected="completed",
+                            actual=first.get("status"),
+                        ),
+                        _check(
+                            "same_key_different_query_conflicts_on_start",
+                            conflict,
+                            expected=True,
+                            actual=conflict,
+                        ),
+                        _check(
+                            "conflicting_start_does_not_repeat_tools",
+                            _tool_call_count(tools) == calls_after_first,
+                            expected=calls_after_first,
+                            actual=_tool_call_count(tools),
+                        ),
+                    ]
+                )
+                observation.update(
+                    {
+                        "first_status": first.get("status"),
+                        "conflict": conflict,
+                        "tool_calls": _tool_call_count(tools),
+                    }
+                )
             else:
                 raise ValueError(f"unsupported recovery scenario: {scenario}")
         finally:
@@ -1342,7 +1713,14 @@ class OfflineEvaluator:
         )
 
     def _evaluate_call_budget(self, case: EvaluationCase) -> EvaluationCaseResult:
-        limit = 0 if case.scenario == "zero_budget" else 1
+        limits = {
+            "zero_budget": 0,
+            "single_call_budget": 1,
+            "double_call_budget": 2,
+        }
+        limit = limits.get(case.scenario or "")
+        if limit is None:
+            raise ValueError(f"unsupported call budget scenario: {case.scenario}")
         settings = replace(self.settings, execution_tool_call_limit=limit)
         dependencies, tools = _counted_dependencies(
             self._fresh_dependencies(settings)
@@ -1355,6 +1733,12 @@ class OfflineEvaluator:
             if (item.get("output") or {}).get("degradation_reason")
             == "call_budget_exceeded"
         ]
+        expected_unverified = {"hours_unverified"}
+        if limit < 2:
+            expected_unverified.add("budget_unverified")
+        else:
+            expected_unverified.add("route_unverified")
+        codes = set(_violation_codes(result))
         assertions = (
             _check(
                 "execution_completed",
@@ -1386,9 +1770,8 @@ class OfflineEvaluator:
             ),
             _check(
                 "unverified_constraints_are_visible",
-                "budget_unverified" in _violation_codes(result)
-                and "hours_unverified" in _violation_codes(result),
-                expected=["budget_unverified", "hours_unverified"],
+                expected_unverified <= codes,
+                expected=sorted(expected_unverified),
                 actual=_violation_codes(result),
             ),
             _check(
@@ -1410,7 +1793,14 @@ class OfflineEvaluator:
         )
 
     def _evaluate_loop_limit(self, case: EvaluationCase) -> EvaluationCaseResult:
-        max_revisions = 0 if case.scenario == "zero_revisions" else 1
+        revisions = {
+            "zero_revisions": 0,
+            "one_revision": 1,
+            "two_revisions": 2,
+        }
+        max_revisions = revisions.get(case.scenario or "")
+        if max_revisions is None:
+            raise ValueError(f"unsupported loop limit scenario: {case.scenario}")
         settings = replace(self.settings, planning_max_revisions=max_revisions)
         envelope, result = self._run_agent(
             case, self._fresh_dependencies(settings)

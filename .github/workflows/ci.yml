@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: tests and offline evaluation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,ingest]"
+
+      - name: Validate curated source inventory
+        run: python scripts/validate_sources.py
+
+      - name: Run unit and integration tests
+        run: python -m pytest
+
+      # 检索与可信回答组依赖本地构建的 BGE 索引（data/index 不入库），
+      # CI 只运行不依赖索引的 agent 边界组。
+      - name: Run offline agent evaluation
+        run: |
+          python scripts/evaluate_offline.py \
+            --group planning \
+            --group fault_injection \
+            --group recovery_idempotency \
+            --group call_budget \
+            --group loop_limit \
+            --output data/index/zhuhai-chimelong/offline_evaluation_agent.json

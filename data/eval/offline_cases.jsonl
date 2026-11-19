@@ -58,3 +58,43 @@
 {"case_id":"eval-budget-002","group":"call_budget","scenario":"single_call_budget","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"一次调用后截断剩余工具"}
 {"case_id":"eval-loop-001","group":"loop_limit","scenario":"zero_revisions","query":"一家三口玩一天，预算 50 元，怎么安排？","description":"零修订额度立即终止"}
 {"case_id":"eval-loop-002","group":"loop_limit","scenario":"one_revision","query":"一家三口玩一天，预算 50 元，怎么安排？","description":"一次修订后终止"}
+{"case_id":"eval-ret-031","group":"retrieval","fixture":"ret-031","description":"马戏酒店餐饮"}
+{"case_id":"eval-ret-032","group":"retrieval","fixture":"ret-032","description":"马戏酒店提前入园权益"}
+{"case_id":"eval-ret-033","group":"retrieval","fixture":"ret-033","description":"横琴湾酒店客房规模"}
+{"case_id":"eval-ret-034","group":"retrieval","fixture":"ret-034","description":"横琴湾酒店穿梭巴频次"}
+{"case_id":"eval-ret-035","group":"retrieval","fixture":"ret-035","description":"企鹅酒店客房规模"}
+{"case_id":"eval-ret-036","group":"retrieval","fixture":"ret-036","description":"企鹅酒店到园区距离"}
+{"case_id":"eval-ret-037","group":"retrieval","fixture":"ret-037","description":"飞船酒店提前入园时间"}
+{"case_id":"eval-ret-038","group":"retrieval","fixture":"ret-038","description":"迎海酒店公寓免费巴士"}
+{"case_id":"eval-ret-039","group":"retrieval","fixture":"ret-039","description":"度假区区位"}
+{"case_id":"eval-ret-040","group":"retrieval","fixture":"ret-040","description":"停车收费标准"}
+{"case_id":"eval-ret-041","group":"retrieval","fixture":"ret-041","description":"海牛繁育新闻"}
+{"case_id":"eval-ret-042","group":"retrieval","fixture":"ret-042","description":"机场接驳"}
+{"case_id":"eval-ret-043","group":"retrieval","fixture":"ret-043","description":"省内城轨换乘"}
+{"case_id":"eval-ret-044","group":"retrieval","fixture":"ret-044","description":"广州长隆专线大巴"}
+{"case_id":"eval-ret-045","group":"retrieval","fixture":"ret-045","description":"水晶宫转马规模"}
+{"case_id":"eval-ans-011","group":"trusted_answer","fixture":"ret-031","expectation":"answerable","description":"马戏酒店餐饮带引用回答"}
+{"case_id":"eval-ans-012","group":"trusted_answer","fixture":"ret-033","expectation":"answerable","description":"酒店客房规模带引用回答"}
+{"case_id":"eval-ans-013","group":"trusted_answer","fixture":"ret-040","expectation":"answerable","description":"停车收费易变信息提示"}
+{"case_id":"eval-ans-014","group":"trusted_answer","fixture":"ret-042","expectation":"answerable","description":"机场交通来源绑定"}
+{"case_id":"eval-ans-015","group":"trusted_answer","fixture":"ret-045","expectation":"answerable","description":"游乐设施规模引用"}
+{"case_id":"eval-ans-016","group":"trusted_answer","fixture":"ans-ref-006","expectation":"refusal","description":"缺少实时房量"}
+{"case_id":"eval-ans-017","group":"trusted_answer","fixture":"ans-ref-007","expectation":"refusal","description":"缺少实时房态"}
+{"case_id":"eval-ans-018","group":"trusted_answer","fixture":"ans-ref-008","expectation":"refusal","description":"缺少实时客流"}
+{"case_id":"eval-ans-019","group":"trusted_answer","fixture":"ans-ref-009","expectation":"refusal","description":"缺少今日入园人数"}
+{"case_id":"eval-ans-020","group":"trusted_answer","fixture":"ans-ref-010","expectation":"refusal","description":"缺少现场余票"}
+{"case_id":"eval-ans-021","group":"trusted_answer","fixture":"ans-ref-011","expectation":"refusal","description":"缺少实时排队时间"}
+{"case_id":"eval-plan-006","group":"planning","scenario":"three_hour_window","query":"下午两点开始只有 3 个小时，怎么安排？","description":"三小时时间窗口"}
+{"case_id":"eval-plan-007","group":"planning","scenario":"explicit_start_time","query":"上午 10:30 开始，带老人玩半天","description":"显式开始时间"}
+{"case_id":"eval-plan-008","group":"planning","scenario":"senior_half_day","query":"带老人轻松玩半天，怎么安排？","description":"老人半日节奏"}
+{"case_id":"eval-plan-009","group":"planning","scenario":"budget_boundary","query":"一家三口玩一天，预算 300 元，怎么安排？","description":"预算边界不被误判超支"}
+{"case_id":"eval-plan-010","group":"planning","scenario":"one_hour_window","query":"只有 1 个小时，预算 300 元，想吃点东西怎么安排？","description":"一小时窗口只安排短时项目"}
+{"case_id":"eval-fault-008","group":"fault_injection","scenario":"distance_exception","query":"从珠海站出发，一家三口玩一天，预算 1000 元","description":"路线工具异常后约束标记未核验"}
+{"case_id":"eval-fault-009","group":"fault_injection","scenario":"hours_timeout","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"营业时间工具超时后降级"}
+{"case_id":"eval-fault-010","group":"fault_injection","scenario":"budget_malformed","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"预算字段类型错误被拒绝"}
+{"case_id":"eval-fault-011","group":"fault_injection","scenario":"distance_negative","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"负数路线耗时被视为未核验"}
+{"case_id":"eval-recovery-005","group":"recovery_idempotency","scenario":"restart_then_reject","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"中断重启后人工拒绝"}
+{"case_id":"eval-recovery-006","group":"recovery_idempotency","scenario":"duplicate_start_conflict","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"同一幂等键不同输入触发冲突"}
+{"case_id":"eval-recovery-007","group":"recovery_idempotency","scenario":"reject_then_replay","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"拒绝后重复 resume 重放且不重复工具"}
+{"case_id":"eval-budget-003","group":"call_budget","scenario":"double_call_budget","query":"一家三口玩一天，预算 1000 元，怎么安排？","description":"两次调用后截断路线与营业时间"}
+{"case_id":"eval-loop-003","group":"loop_limit","scenario":"two_revisions","query":"一家三口玩一天，预算 50 元，怎么安排？","description":"两次修订后终止"}
