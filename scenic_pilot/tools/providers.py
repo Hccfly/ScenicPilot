@@ -225,6 +225,123 @@ class OpenMeteoWeatherProvider:
         return candidates[0]
 
 
+class AmapWeatherProvider:
+    """Domestic weather source via AMap Web Service; stable from within China.
+
+    Reuses the same AMAP_API_KEY as the distance provider. AMap's forecast
+    endpoint returns up to 4 days of daily casts and responds in well under a
+    second from domestic networks, avoiding the跨境 latency jitter that makes
+    Open-Meteo unreliable for this deployment.
+    """
+
+    provider_id = "amap-weather"
+    source_url = "https://lbs.amap.com/api/webservice/guide/api/weatherinfo"
+    _AMAP_WEATHER_URL = "https://restapi.amap.com/v3/weather/weatherInfo"
+    _zhuhai_adcode = "440400"  # 珠海市
+
+    def __init__(
+        self,
+        api_key: str,
+        client: httpx.Client | None = None,
+        *,
+        today=lambda: date_type.today(),
+        now=lambda: datetime.now(UTC),
+    ) -> None:
+        if not api_key.strip():
+            raise ValueError("AMap weather API key cannot be empty")
+        self.api_key = api_key
+        self.client = client or httpx.Client(
+            headers={"User-Agent": "ScenicPilot/0.1 weather-tool"}
+        )
+        self.today = today
+        self.now = now
+
+    def fetch(
+        self, *, location: str, date: str | None, timeout_seconds: float
+    ) -> dict[str, object]:
+        target_date = date or self.today().isoformat()
+        try:
+            date_type.fromisoformat(target_date)
+        except ValueError as error:
+            raise ToolProviderError(
+                "invalid_date", "天气日期必须使用 YYYY-MM-DD。", retryable=False
+            ) from error
+
+        # 高德天气只到市级；本项目固定珠海单场景，任何地点都映射到珠海市。
+        adcode = self._zhuhai_adcode
+        payload = _json_get(
+            self.client,
+            self._AMAP_WEATHER_URL,
+            params={
+                "key": self.api_key,
+                "city": adcode,
+                "extensions": "all",
+                "output": "JSON",
+            },
+            timeout_seconds=timeout_seconds,
+        )
+        if str(payload.get("status")) != "1":
+            info = payload.get("info", "unknown")
+            raise ToolProviderError(
+                "amap_weather_error",
+                f"高德天气查询失败：{info}。",
+                retryable=str(payload.get("infocode")) not in {"10001", "10002"},
+            )
+        forecasts = payload.get("forecasts") or []
+        if (
+            not isinstance(forecasts, list)
+            or not forecasts
+            or not isinstance(forecasts[0], dict)
+        ):
+            raise ToolProviderError(
+                "invalid_weather_payload", "高德天气返回结构无效。", retryable=False
+            )
+        forecast = forecasts[0]
+        casts = forecast.get("casts") or []
+        if not isinstance(casts, list) or not casts:
+            raise ToolProviderError(
+                "invalid_weather_payload", "高德天气预报数据缺失。", retryable=False
+            )
+        cast = next(
+            (
+                item
+                for item in casts
+                if isinstance(item, dict) and item.get("date") == target_date
+            ),
+            None,
+        )
+        if cast is None:
+            raise ToolProviderError(
+                "forecast_date_unavailable",
+                "目标日期不在当前天气预报窗口内。",
+                retryable=False,
+            )
+
+        def to_float(value: object) -> float | None:
+            try:
+                return float(value) if value is not None else None
+            except (TypeError, ValueError):
+                return None
+
+        return {
+            "status": "ok",
+            "provider": self.provider_id,
+            "source_url": self.source_url,
+            "observed_at": self.now().isoformat(),
+            "location": location,
+            "resolved_location": forecast.get("city", location),
+            "latitude": None,
+            "longitude": None,
+            "date": target_date,
+            "weather_code": None,
+            "weather": str(cast.get("dayweather") or "未知"),
+            "temperature_max_c": to_float(cast.get("daytemp")),
+            "temperature_min_c": to_float(cast.get("nighttemp")),
+            "precipitation_probability_max": None,
+            "message": "天气预报会持续更新，请临近出发再次核验。",
+        }
+
+
 class AmapDistanceProvider:
     provider_id = "amap-web-service"
     source_url = "https://lbs.amap.com/api/webservice/guide/api/newroute"

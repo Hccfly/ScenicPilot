@@ -672,10 +672,12 @@ def build_graph(dependencies: RuntimeDependencies, *, checkpointer: Any = None):
                 minimum = output.get("temperature_min_c")
                 maximum = output.get("temperature_max_c")
                 rain = output.get("precipitation_probability_max")
-                lines.append(
-                    f"天气参考（{weather_date}）：{weather}，{minimum}～{maximum}℃，"
-                    f"最大降水概率 {rain}%。"
-                )
+                detail = f"天气参考（{weather_date}）：{weather}"
+                if minimum is not None and maximum is not None:
+                    detail += f"，{minimum}～{maximum}℃"
+                if rain is not None:
+                    detail += f"，最大降水概率 {rain}%"
+                lines.append(f"{detail}。")
             elif tool_name == "distance":
                 meters = output.get("distance_meters")
                 duration = output.get("duration_minutes")

@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime
 from urllib.parse import parse_qs
 
 import httpx
+import pytest
 
 from scenic_pilot.agent.dependencies import default_dependencies
 from scenic_pilot.agent.services import ItineraryToolEnricher
@@ -18,7 +19,11 @@ from scenic_pilot.tools.offline import (
     OfflineDistanceTool,
     OfflineOpeningHoursTool,
 )
-from scenic_pilot.tools.providers import AmapDistanceProvider, OpenMeteoWeatherProvider
+from scenic_pilot.tools.providers import (
+    AmapDistanceProvider,
+    AmapWeatherProvider,
+    OpenMeteoWeatherProvider,
+)
 from scenic_pilot.tools.resilience import ResilientToolRunner
 
 
@@ -265,6 +270,89 @@ def test_amap_provider_geocodes_and_maps_first_driving_route() -> None:
     assert result["duration_minutes"] == 30
     assert result["taxi_cost_cny"] == "45"
     assert "secret-key" not in str(result)
+
+
+def test_amap_weather_provider_maps_zhuhai_daily_forecast() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.host == "restapi.amap.com"
+        assert request.url.path == "/v3/weather/weatherInfo"
+        params = parse_qs(request.url.query.decode())
+        assert params["city"] == ["440400"]
+        assert params["extensions"] == ["all"]
+        return httpx.Response(
+            200,
+            json={
+                "status": "1",
+                "forecasts": [
+                    {
+                        "city": "珠海市",
+                        "casts": [
+                            {
+                                "date": "2026-09-12",
+                                "dayweather": "阴",
+                                "daytemp": "30",
+                                "nighttemp": "25",
+                            }
+                        ],
+                    }
+                ],
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = AmapWeatherProvider(
+        "secret-key",
+        client,
+        today=lambda: date(2026, 9, 12),
+        now=lambda: datetime(2026, 9, 12, tzinfo=UTC),
+    )
+
+    result = provider.fetch(
+        location="珠海长隆海洋王国", date="2026-09-12", timeout_seconds=2
+    )
+
+    assert result["status"] == "ok"
+    assert result["provider"] == "amap-weather"
+    assert result["location"] == "珠海长隆海洋王国"
+    assert result["resolved_location"] == "珠海市"
+    assert result["weather"] == "阴"
+    assert result["temperature_max_c"] == 30.0
+    assert result["temperature_min_c"] == 25.0
+    assert result["weather_code"] is None
+    assert result["precipitation_probability_max"] is None
+    assert "secret-key" not in str(result)
+
+
+def test_amap_weather_provider_rejects_date_outside_forecast_window() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "status": "1",
+                "forecasts": [
+                    {
+                        "city": "珠海市",
+                        "casts": [
+                            {
+                                "date": "2026-09-12",
+                                "dayweather": "晴",
+                                "daytemp": "30",
+                                "nighttemp": "25",
+                            }
+                        ],
+                    }
+                ],
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = AmapWeatherProvider("secret-key", client)
+
+    with pytest.raises(ToolProviderError) as error:
+        provider.fetch(location="珠海", date="2026-10-01", timeout_seconds=2)
+
+    assert error.value.code == "forecast_date_unavailable"
+    assert error.value.retryable is False
 
 
 class ExplodingWeatherTool:

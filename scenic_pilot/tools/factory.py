@@ -15,7 +15,11 @@ from scenic_pilot.tools.offline import (
     OfflineOpeningHoursTool,
     OfflineWeatherTool,
 )
-from scenic_pilot.tools.providers import AmapDistanceProvider, OpenMeteoWeatherProvider
+from scenic_pilot.tools.providers import (
+    AmapDistanceProvider,
+    AmapWeatherProvider,
+    OpenMeteoWeatherProvider,
+)
 from scenic_pilot.tools.resilience import ResilientToolRunner
 
 
@@ -35,7 +39,14 @@ def build_tool_stack(settings: Settings) -> ToolStack:
         )
     )
     online = mode in {"auto", "live"}
-    weather_provider = OpenMeteoWeatherProvider() if online else None
+    if online:
+        weather_provider = (
+            AmapWeatherProvider(settings.amap_api_key)
+            if settings.amap_api_key
+            else OpenMeteoWeatherProvider()
+        )
+    else:
+        weather_provider = None
     distance_provider = (
         AmapDistanceProvider(settings.amap_api_key)
         if online and settings.amap_api_key
