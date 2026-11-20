@@ -7,8 +7,11 @@ import httpx
 from scenic_pilot.config import Settings
 from scenic_pilot.llm import (
     DisabledItineraryModelClient,
+    DisabledQueryUnderstandingClient,
     OpenAICompatibleItineraryClient,
+    OpenAICompatibleQueryUnderstandingClient,
     build_itinerary_model_client,
+    build_query_understanding_client,
 )
 
 
@@ -110,3 +113,130 @@ def test_deepseek_factory_requires_key_and_model_without_crashing() -> None:
     assert no_key.select_candidates(
         query="test", constraints={}, candidates=[]
     )["degradation_reason"] == "api_key_not_configured"
+
+
+def _understanding_payload(**overrides: object) -> dict[str, object]:
+    constraints: dict[str, object] = {
+        "duration_minutes": None,
+        "party_size": None,
+        "budget": None,
+        "visit_date": None,
+        "origin": None,
+        "weather_location": None,
+    }
+    payload: dict[str, object] = {
+        "intent": "faq",
+        "requires_live_data": False,
+        "rewritten_query": "",
+        "constraints": constraints,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_query_understanding_adapter_returns_validated_slots() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "https://api.openai.com/v1/responses"
+        payload = json.loads(request.content)
+        assert payload["text"]["format"]["name"] == "query_understanding"
+        assert payload["text"]["format"]["strict"] is True
+        assert payload["store"] is False
+        return httpx.Response(
+            200,
+            json={
+                "output": [
+                    {
+                        "type": "message",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": json.dumps(
+                                    _understanding_payload(
+                                        intent="itinerary",
+                                        constraints={
+                                            **_understanding_payload()["constraints"],
+                                            "party_size": 3,
+                                            "budget": 800,
+                                        },
+                                    ),
+                                    ensure_ascii=False,
+                                ),
+                            }
+                        ],
+                    }
+                ],
+                "usage": {"input_tokens": 40, "output_tokens": 20},
+            },
+        )
+
+    client = OpenAICompatibleQueryUnderstandingClient(
+        api_key="secret-key",
+        base_url="https://api.openai.com/v1",
+        model="configured-model",
+        provider_id="openai",
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    result = client.understand(query="两大一小玩一天，预算 800 元")
+
+    assert result["status"] == "ok"
+    assert result["intent"] == "itinerary"
+    assert result["requires_live_data"] is False
+    assert result["constraints"] == {"party_size": 3, "budget": 800}
+    assert "secret-key" not in str(result)
+
+
+def test_query_understanding_rejects_out_of_enum_intent() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "output": [
+                    {
+                        "type": "message",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": json.dumps(
+                                    _understanding_payload(intent="booking"),
+                                    ensure_ascii=False,
+                                ),
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+
+    client = OpenAICompatibleQueryUnderstandingClient(
+        api_key="secret-key",
+        base_url="https://api.openai.com/v1",
+        model="configured-model",
+        provider_id="openai",
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    result = client.understand(query="test")
+
+    assert result["status"] == "unavailable"
+    assert result["degradation_reason"] == "invalid_model_schema"
+
+
+def test_query_understanding_stays_disabled_unless_enabled() -> None:
+    configured = Settings(
+        llm_provider="deepseek",
+        deepseek_api_key="secret",
+        llm_model="configured-model",
+    )
+    enabled = build_query_understanding_client(
+        Settings(
+            llm_provider="deepseek",
+            deepseek_api_key="secret",
+            llm_model="configured-model",
+            nlu_model_enabled=True,
+        )
+    )
+    disabled = build_query_understanding_client(configured)
+
+    assert isinstance(enabled, OpenAICompatibleQueryUnderstandingClient)
+    assert isinstance(disabled, DisabledQueryUnderstandingClient)
+    assert disabled.understand(query="test")["degradation_reason"] == "nlu_disabled"

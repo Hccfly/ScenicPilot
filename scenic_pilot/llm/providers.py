@@ -7,22 +7,8 @@ from typing import Any
 import httpx
 
 
-class OpenAICompatibleItineraryClient:
-    """Small Responses API adapter shared by OpenAI-compatible providers."""
-
-    _selection_schema = {
-        "type": "object",
-        "properties": {
-            "selected_source_ids": {
-                "type": "array",
-                "items": {"type": "string"},
-                "maxItems": 4,
-            },
-            "rationale": {"type": "string"},
-        },
-        "required": ["selected_source_ids", "rationale"],
-        "additionalProperties": False,
-    }
+class _OpenAICompatibleResponsesClient:
+    """Shared Responses API transport for JSON-schema constrained calls."""
 
     def __init__(
         self,
@@ -45,51 +31,33 @@ class OpenAICompatibleItineraryClient:
             headers={"User-Agent": "ScenicPilot/0.1 itinerary-model"}
         )
 
-    def select_candidates(
+    def _request_structured(
         self,
         *,
-        query: str,
-        constraints: dict[str, Any],
-        candidates: Sequence[dict[str, Any]],
+        instructions: str,
+        payload_input: dict[str, Any],
+        schema: dict[str, Any],
+        schema_name: str,
+        max_output_tokens: int,
     ) -> dict[str, object]:
-        candidate_view = [
-            {
-                "source_id": str(item.get("source_id", "")),
-                "title": str(item.get("title", "")),
-                "category": str(item.get("category", "")),
-                "score": float(item.get("score", 0.0)),
-            }
-            for item in candidates
-        ]
         payload = {
             "model": self.model,
-            "instructions": (
-                "你是景区行程候选排序器。只能从输入 candidates 中选择 source_id，"
-                "不得创建景点、价格、开放时间或交通事实。根据用户约束返回最多 4 个候选，"
-                "按推荐顺序排列。"
-            ),
-            "input": json.dumps(
-                {
-                    "query": query,
-                    "constraints": constraints,
-                    "candidates": candidate_view,
-                },
-                ensure_ascii=False,
-            ),
+            "instructions": instructions,
+            "input": json.dumps(payload_input, ensure_ascii=False),
             "text": {
                 "format": {
                     "type": "json_schema",
-                    "name": "itinerary_candidate_selection",
+                    "name": schema_name,
                     "strict": True,
-                    "schema": self._selection_schema,
+                    "schema": schema,
                 }
             },
-            "max_output_tokens": 300,
+            "max_output_tokens": max_output_tokens,
             "store": False,
         }
         # DeepSeek enables thinking by default and counts reasoning tokens against
-        # max_output_tokens. Candidate ranking is a bounded structured-output task,
-        # so disable thinking to avoid truncating the JSON response before parsing.
+        # max_output_tokens. These are bounded structured-output tasks, so disable
+        # thinking to avoid truncating the JSON response before parsing.
         if self.provider_id == "deepseek":
             payload["reasoning"] = {"effort": "none"}
         try:
@@ -103,27 +71,30 @@ class OpenAICompatibleItineraryClient:
                 timeout=self.timeout_seconds,
             )
         except httpx.TimeoutException:
-            return self._unavailable("timeout")
+            return {"status": "unavailable", "degradation_reason": "timeout"}
         except httpx.RequestError:
-            return self._unavailable("network_error")
+            return {"status": "unavailable", "degradation_reason": "network_error"}
         if response.status_code >= 400:
-            return self._unavailable(f"model_http_{response.status_code}")
+            return {
+                "status": "unavailable",
+                "degradation_reason": f"model_http_{response.status_code}",
+            }
         try:
             body = response.json()
-            text = self._output_text(body)
-            selection = json.loads(text)
+            selection = json.loads(self._output_text(body))
         except (TypeError, ValueError, KeyError, IndexError):
-            return self._unavailable("invalid_model_output")
-        source_ids = selection.get("selected_source_ids")
-        rationale = selection.get("rationale")
-        if not isinstance(source_ids, list) or not isinstance(rationale, str):
-            return self._unavailable("invalid_model_schema")
+            return {
+                "status": "unavailable",
+                "degradation_reason": "invalid_model_output",
+            }
+        if not isinstance(selection, dict):
+            return {
+                "status": "unavailable",
+                "degradation_reason": "invalid_model_schema",
+            }
         return {
             "status": "ok",
-            "provider": self.provider_id,
-            "model": self.model,
-            "selected_source_ids": [str(item) for item in source_ids[:4]],
-            "rationale": rationale[:500],
+            "selection": selection,
             "usage": body.get("usage", {}),
         }
 
@@ -150,3 +121,164 @@ class OpenAICompatibleItineraryClient:
             "selected_source_ids": [],
             "degradation_reason": reason,
         }
+
+
+class OpenAICompatibleItineraryClient(_OpenAICompatibleResponsesClient):
+    """Small Responses API adapter shared by OpenAI-compatible providers."""
+
+    _selection_schema = {
+        "type": "object",
+        "properties": {
+            "selected_source_ids": {
+                "type": "array",
+                "items": {"type": "string"},
+                "maxItems": 4,
+            },
+            "rationale": {"type": "string"},
+        },
+        "required": ["selected_source_ids", "rationale"],
+        "additionalProperties": False,
+    }
+
+    def select_candidates(
+        self,
+        *,
+        query: str,
+        constraints: dict[str, Any],
+        candidates: Sequence[dict[str, Any]],
+    ) -> dict[str, object]:
+        candidate_view = [
+            {
+                "source_id": str(item.get("source_id", "")),
+                "title": str(item.get("title", "")),
+                "category": str(item.get("category", "")),
+                "score": float(item.get("score", 0.0)),
+            }
+            for item in candidates
+        ]
+        outcome = self._request_structured(
+            instructions=(
+                "你是景区行程候选排序器。只能从输入 candidates 中选择 source_id，"
+                "不得创建景点、价格、开放时间或交通事实。根据用户约束返回最多 4 个候选，"
+                "按推荐顺序排列。"
+            ),
+            payload_input={
+                "query": query,
+                "constraints": constraints,
+                "candidates": candidate_view,
+            },
+            schema=self._selection_schema,
+            schema_name="itinerary_candidate_selection",
+            max_output_tokens=300,
+        )
+        if outcome["status"] != "ok":
+            return self._unavailable(str(outcome.get("degradation_reason")))
+        selection = outcome["selection"]
+        source_ids = selection.get("selected_source_ids")
+        rationale = selection.get("rationale")
+        if not isinstance(source_ids, list) or not isinstance(rationale, str):
+            return self._unavailable("invalid_model_schema")
+        return {
+            "status": "ok",
+            "provider": self.provider_id,
+            "model": self.model,
+            "selected_source_ids": [str(item) for item in source_ids[:4]],
+            "rationale": rationale[:500],
+            "usage": outcome["usage"],
+        }
+
+
+class OpenAICompatibleQueryUnderstandingClient(_OpenAICompatibleResponsesClient):
+    """Fills intent, constraints and live-data flags; never produces facts."""
+
+    _understanding_schema = {
+        "type": "object",
+        "properties": {
+            "intent": {
+                "type": "string",
+                "enum": ["faq", "weather", "itinerary"],
+            },
+            "requires_live_data": {"type": "boolean"},
+            "rewritten_query": {"type": "string"},
+            "constraints": {
+                "type": "object",
+                "properties": {
+                    "duration_minutes": {"type": ["integer", "null"]},
+                    "party_size": {"type": ["integer", "null"]},
+                    "budget": {"type": ["number", "null"]},
+                    "visit_date": {"type": ["string", "null"]},
+                    "origin": {"type": ["string", "null"]},
+                    "weather_location": {"type": ["string", "null"]},
+                },
+                "required": [
+                    "duration_minutes",
+                    "party_size",
+                    "budget",
+                    "visit_date",
+                    "origin",
+                    "weather_location",
+                ],
+                "additionalProperties": False,
+            },
+        },
+        "required": [
+            "intent",
+            "requires_live_data",
+            "rewritten_query",
+            "constraints",
+        ],
+        "additionalProperties": False,
+    }
+    _constraint_keys = {
+        "duration_minutes",
+        "party_size",
+        "budget",
+        "visit_date",
+        "origin",
+        "weather_location",
+    }
+
+    def understand(self, *, query: str) -> dict[str, object]:
+        outcome = self._request_structured(
+            instructions=(
+                "你是景区问句理解器。只抽取用户明确表达的信息，不得猜测或补全。"
+                "intent 只能是 faq、weather、itinerary；requires_live_data 表示回答是否依赖"
+                "实时房态、客流、排队、余票、票价、开放时间、演出场次等需要官方当日核验的信息；"
+                "rewritten_query 用于检索召回，必须保留原句中的专名，不要加入新事实。"
+                "用户没有提到的约束输出 null。"
+            ),
+            payload_input={"query": query},
+            schema=self._understanding_schema,
+            schema_name="query_understanding",
+            max_output_tokens=400,
+        )
+        if outcome["status"] != "ok":
+            return self._unavailable(str(outcome.get("degradation_reason")))
+        selection = outcome["selection"]
+        intent = selection.get("intent")
+        live = selection.get("requires_live_data")
+        rewritten = selection.get("rewritten_query")
+        constraints = selection.get("constraints")
+        if (
+            intent not in {"faq", "weather", "itinerary"}
+            or not isinstance(live, bool)
+            or not isinstance(rewritten, str)
+            or not isinstance(constraints, dict)
+        ):
+            return self._unavailable("invalid_model_schema")
+        filled = {
+            key: value
+            for key, value in constraints.items()
+            if key in self._constraint_keys and value is not None
+        }
+        return {
+            "status": "ok",
+            "provider": self.provider_id,
+            "model": self.model,
+            "intent": intent,
+            "constraints": filled,
+            "requires_live_data": live,
+            "rewritten_query": rewritten[:200],
+            "usage": outcome["usage"],
+        }
+

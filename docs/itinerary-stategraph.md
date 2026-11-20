@@ -19,12 +19,34 @@ START
 
 行程分支的六个节点职责如下：
 
-1. `classify`：识别 FAQ 或 itinerary，并抽取半日/一日、人数、预算、到访日期、出发地和游客偏好。
+1. `classify`：识别 FAQ 或 itinerary，并抽取半日/一日、人数、预算、到访日期、出发地和游客偏好；规则未命中时可由模型补位。
 2. `retrieve`：在当前景区范围内执行 混合检索阶段 混合检索，把候选与完整检索轨迹写入 state。
 3. `generate_candidates`：仅保留 attraction/dining；可选模型对候选 `source_id` 排序，随后执行来源白名单过滤和确定性组合。
 4. `enrich_tools`：查询天气、餐饮预算以及“出发地→首站→后续园区”的驾车路线；每个调用独立失败、独立降级。
 5. `validate`：执行 行程编排阶段 基础时长、预算、重复站点和开放状态检查。
 6. `finalize`：生成结构化计划、自然语言摘要、引用、工具结果、违规项和规划轨迹。
+
+## 意图与槽位：规则优先，模型补位
+
+`classify` 先走确定性规则：命中“安排/一天/半天/怎么玩”等词判为 itinerary，命中“天气/降雨/台风”判为 weather，否则为 faq。启用 `SCENICPILOT_NLU_MODEL_ENABLED=1` 后，每次请求都会调用 `QueryUnderstandingClient` 补全四类信息，但**规则命中的意图不会被模型覆盖，规则已抽取的字段也不会被覆盖**：
+
+- `intent`：faq / weather / itinerary，仅在规则落到 faq 时采用模型结果；
+- `constraints`：时长、人数、预算、到访日期、出发地、天气地点，只填补规则缺失的字段；
+- `requires_live_data`：回答是否依赖需要官方当日核验的信息，仅对最终意图为 faq 的请求生效；
+- `rewritten_query`：只用于检索召回的改写。
+
+模型输出必须通过严格 JSON Schema 和本地校验（枚举、数值范围、日期格式、字符串长度）。非法字段直接丢弃；超时、网络错误或 schema 不符时整条链路回退到规则结果，并在 `nlu_trace.model.degradation_reason` 留痕。检索使用 `rewritten_query`，回答层仍用原始问句做证据门禁。
+
+`requires_live_data=true` 会直接触发结构化拒答，不再依赖“实时排队/现场库存”这类关键词命中；这条支路正是口语问法最容易漏判的地方。天气和行程分支本身就会调用实时工具，因此不套用这个标记。
+
+基线可以用口语标注集测量：
+
+```powershell
+python scripts/evaluate_nlu.py                    # 纯规则
+python scripts/evaluate_nlu.py --with-model       # 规则 + 模型补位
+```
+
+34 条标注集上，纯规则的 intent / constraint / live / 综合准确率分别为 91.2% / 91.2% / 44.1% / 26.5%；接入模型后为 97.1% / 100% / 100% / 97.1%。剩余一条是 `两大一小逛 6 个小时，预算 800 元`：模型判为行程，人工标注判为 faq，属于问句无显式诉求时的口径分歧。新增的 10 条拒答样本刻意不含“实时/现场/余票/房态”等关键词，规则基线全部漏判，模型全部判对，因此这组数字也用作关键词词表的失效证明。
 
 ## 候选生成边界
 

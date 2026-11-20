@@ -13,7 +13,11 @@ from scenic_pilot.agent.validation import ItineraryPlanReviser, ItineraryVerifie
 from scenic_pilot.config import Settings
 from scenic_pilot.knowledge.ingestion import build_index
 from scenic_pilot.knowledge.retrieval import HybridRetriever, SentenceTransformerEmbedding
-from scenic_pilot.llm import ItineraryModelClient, build_itinerary_model_client
+from scenic_pilot.llm import (
+    ItineraryModelClient,
+    build_itinerary_model_client,
+    build_query_understanding_client,
+)
 from scenic_pilot.tools.contracts import BudgetTool, DistanceTool, OpeningHoursTool, WeatherTool
 from scenic_pilot.tools.factory import build_tool_stack
 from scenic_pilot.tools.managed import ToolSuite
@@ -49,6 +53,7 @@ def default_dependencies(settings: Settings | None = None) -> RuntimeDependencie
     selected = settings or Settings.from_env()
     tools = build_tool_stack(selected)
     model_client = build_itinerary_model_client(selected)
+    understanding_client = build_query_understanding_client(selected)
     if selected.retrieval_index_path is not None:
         embedding = SentenceTransformerEmbedding(
             selected.embedding_model,
@@ -63,7 +68,7 @@ def default_dependencies(settings: Settings | None = None) -> RuntimeDependencie
     return RuntimeDependencies(
         settings=selected,
         index=index,
-        classifier=IntentClassifier(),
+        classifier=IntentClassifier(understanding_client=understanding_client),
         answerer=GroundedAnswerer(
             AnswerPolicy(
                 min_keyword_score=selected.answer_min_keyword_score,

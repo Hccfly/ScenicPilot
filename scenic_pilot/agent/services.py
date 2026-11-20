@@ -8,7 +8,7 @@ from typing import Any
 
 from scenic_pilot.answering import GroundedAnswerer
 from scenic_pilot.agent.validation import PREFERENCE_TERMS, ItineraryVerifier
-from scenic_pilot.llm.contracts import ItineraryModelClient
+from scenic_pilot.llm.contracts import ItineraryModelClient, QueryUnderstandingClient
 from scenic_pilot.models import (
     ItineraryPlan,
     ItineraryStop,
@@ -40,8 +40,14 @@ class IntentClassifier:
         "台风",
     )
 
-    def __init__(self, *, today=date.today) -> None:
+    def __init__(
+        self,
+        *,
+        today=date.today,
+        understanding_client: QueryUnderstandingClient | None = None,
+    ) -> None:
         self.today = today
+        self.understanding_client = understanding_client
 
     def classify(self, query: str) -> str:
         if any(term in query for term in self._itinerary_terms):
@@ -50,50 +56,151 @@ class IntentClassifier:
             return "weather"
         return "faq"
 
-    def extract_constraints(self, query: str) -> dict[str, Any]:
+    def understand(
+        self, query: str
+    ) -> tuple[str, dict[str, Any], bool, dict[str, Any]]:
+        """Return intent, constraints, live-data flag and an NLU trace.
+
+        Rules stay authoritative: a rule-matched intent is never replaced and
+        rule-extracted constraints are never overwritten. When a client is
+        configured it still runs, so it can fill missing slots and decide the
+        live-data flag; every model field is validated before use.
+        """
+        rule_intent = self.classify(query)
+        explicit = self._rule_constraints(query)
         constraints: dict[str, Any] = {
-            "duration_minutes": (
-                480 if any(term in query for term in ("一天", "一日")) else 240
-            ),
+            "duration_minutes": 240,
             "party_size": 1,
         }
+        constraints.update(explicit)
+        trace: dict[str, Any] = {
+            "schema_version": "scenicpilot-nlu-trace-v1",
+            "mode": "rule",
+            "rule_intent": rule_intent,
+            "intent_source": "rule",
+            "requires_live_data": False,
+            "rewritten_query": None,
+            "rule_constraint_fields": sorted(explicit),
+            "model": {"status": "not_called"},
+        }
+        if self.understanding_client is None:
+            return rule_intent, constraints, False, trace
+        try:
+            result = self.understanding_client.understand(query=query)
+        except Exception:
+            result = {"status": "unavailable", "degradation_reason": "client_exception"}
+        trace["model"] = {
+            key: result[key]
+            for key in ("status", "provider", "model", "degradation_reason")
+            if key in result
+        }
+        if result.get("status") != "ok":
+            return rule_intent, constraints, False, trace
+
+        intent = result.get("intent")
+        if intent in {"faq", "weather", "itinerary"} and rule_intent == "faq":
+            rule_intent = intent
+            trace["intent_source"] = "model"
+
+        applied: list[str] = []
+        model_constraints = result.get("constraints")
+        if isinstance(model_constraints, dict):
+            for key, value in model_constraints.items():
+                if key in explicit:
+                    continue
+                valid, cleaned = self._validated_constraint(key, value)
+                if not valid:
+                    continue
+                constraints[key] = cleaned
+                applied.append(key)
+        trace["model_constraint_fields"] = sorted(applied)
+
+        model_live = result.get("requires_live_data") is True
+        requires_live_data = model_live and rule_intent == "faq"
+        trace["model_requires_live_data"] = model_live
+        trace["requires_live_data"] = requires_live_data
+
+        rewritten = result.get("rewritten_query")
+        if isinstance(rewritten, str):
+            candidate = rewritten.strip()[:200]
+            if candidate and candidate != query:
+                trace["rewritten_query"] = candidate
+        trace["mode"] = "rule+model"
+        return rule_intent, constraints, requires_live_data, trace
+
+    _model_constraint_ranges = {
+        "duration_minutes": (15, 1440),
+        "party_size": (1, 50),
+        "budget": (0.0, 1_000_000.0),
+    }
+
+    @classmethod
+    def _validated_constraint(
+        cls, key: str, value: object
+    ) -> tuple[bool, Any]:
+        if key in cls._model_constraint_ranges:
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                return False, None
+            minimum, maximum = cls._model_constraint_ranges[key]
+            if not minimum <= value <= maximum:
+                return False, None
+            return True, float(value) if key == "budget" else int(value)
+        if key == "visit_date":
+            if not isinstance(value, str):
+                return False, None
+            try:
+                parsed = date.fromisoformat(value)
+            except ValueError:
+                return False, None
+            return (2020 <= parsed.year <= 2100), parsed.isoformat()
+        if key in {"origin", "weather_location"}:
+            if not isinstance(value, str):
+                return False, None
+            cleaned = value.strip()
+            return (2 <= len(cleaned) <= 24), cleaned
+        return False, None
+
+    def _rule_constraints(self, query: str) -> dict[str, Any]:
+        explicit: dict[str, Any] = {}
+        if any(term in query for term in ("一天", "一日")):
+            explicit["duration_minutes"] = 480
         if "半天" in query:
-            constraints["duration_minutes"] = 240
+            explicit["duration_minutes"] = 240
         hours = re.search(r"(\d+(?:\.\d+)?)\s*个?小时", query)
         if hours:
-            constraints["duration_minutes"] = int(float(hours.group(1)) * 60)
+            explicit["duration_minutes"] = int(float(hours.group(1)) * 60)
         budget = re.search(r"预算\s*(\d+(?:\.\d+)?)\s*元?", query)
         if budget:
-            constraints["budget"] = float(budget.group(1))
+            explicit["budget"] = float(budget.group(1))
         party = re.search(r"(\d+)\s*(?:人|位)", query)
         if party:
-            constraints["party_size"] = max(1, int(party.group(1)))
+            explicit["party_size"] = max(1, int(party.group(1)))
         elif "一家三口" in query:
-            constraints["party_size"] = 3
+            explicit["party_size"] = 3
 
         visit_date = self._extract_visit_date(query)
         if visit_date:
-            constraints["visit_date"] = visit_date
+            explicit["visit_date"] = visit_date
         if any(term in query for term in self._weather_terms):
-            constraints["weather_location"] = self._extract_weather_location(query)
+            explicit["weather_location"] = self._extract_weather_location(query)
         origin = re.search(r"从\s*([^，。,.]{2,24}?)(?:出发|前往|去|到)", query)
         if origin:
-            constraints["origin"] = origin.group(1).strip()
+            explicit["origin"] = origin.group(1).strip()
 
         preferences: list[str] = []
         if any(term in query for term in ("孩子", "亲子", "儿童")):
             preferences.append("family")
-            constraints["visitor_type"] = "family"
+            explicit["visitor_type"] = "family"
         if any(term in query for term in ("老人", "长辈", "少走路", "轻松")):
             preferences.append("senior_friendly")
-            constraints["visitor_type"] = "senior"
+            explicit["visitor_type"] = "senior"
         if any(term in query for term in ("室内", "雨天", "避雨", "科普")):
             preferences.append("indoor_science")
         if any(term in query for term in ("海洋", "鲸鲨", "动物")):
             preferences.append("marine")
         if preferences:
-            constraints["preferences"] = preferences
-            constraints["preference"] = preferences[0]
+            explicit["preferences"] = preferences
+            explicit["preference"] = preferences[0]
         if any(term in query for term in ("必须", "一定要", "务必", "必看", "只想")):
             required = [
                 preference
@@ -101,12 +208,20 @@ class IntentClassifier:
                 if preference in {"indoor_science", "marine"}
             ]
             if required:
-                constraints["required_preferences"] = required
+                explicit["required_preferences"] = required
         clock = re.search(r"(?<!\d)([01]?\d|2[0-3])[:：]([0-5]\d)", query)
         if clock:
-            constraints["start_time"] = (
+            explicit["start_time"] = (
                 f"{int(clock.group(1)):02d}:{int(clock.group(2)):02d}"
             )
+        return explicit
+
+    def extract_constraints(self, query: str) -> dict[str, Any]:
+        constraints: dict[str, Any] = {
+            "duration_minutes": 240,
+            "party_size": 1,
+        }
+        constraints.update(self._rule_constraints(query))
         return constraints
 
     @staticmethod

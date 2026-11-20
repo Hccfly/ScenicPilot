@@ -8,6 +8,9 @@ class AgentState(TypedDict, total=False):
     scenic_id: str
     intent: Literal["faq", "weather", "itinerary"]
     constraints: dict[str, Any]
+    requires_live_data: bool
+    nlu_trace: dict[str, Any]
+    retrieval_query: str
     hits: list[dict[str, Any]]
     retrieval_trace: dict[str, Any]
     answer: str

@@ -82,11 +82,16 @@ def _governance_trace(
 def build_graph(dependencies: RuntimeDependencies, *, checkpointer: Any = None):
     def classify(state: AgentState) -> dict[str, Any]:
         approval_required = bool(state.get("approval_required", False))
+        intent, constraints, requires_live_data, nlu_trace = (
+            dependencies.classifier.understand(state["query"])
+        )
+        retrieval_query = nlu_trace.get("rewritten_query") or state["query"]
         return {
-            "intent": dependencies.classifier.classify(state["query"]),
-            "constraints": dependencies.classifier.extract_constraints(
-                state["query"]
-            ),
+            "intent": intent,
+            "constraints": constraints,
+            "requires_live_data": requires_live_data,
+            "nlu_trace": nlu_trace,
+            "retrieval_query": retrieval_query,
             "constraint_status": "not_applicable",
             "revision_count": 0,
             "max_revisions": dependencies.settings.planning_max_revisions,
@@ -117,7 +122,7 @@ def build_graph(dependencies: RuntimeDependencies, *, checkpointer: Any = None):
 
     def retrieve(state: AgentState) -> dict[str, Any]:
         response = dependencies.index.search_with_trace(
-            state["query"],
+            state.get("retrieval_query") or state["query"],
             top_k=dependencies.settings.top_k,
             filters={"scenic_id": state["scenic_id"]},
         )
@@ -297,6 +302,7 @@ def build_graph(dependencies: RuntimeDependencies, *, checkpointer: Any = None):
             min_score=dependencies.settings.min_retrieval_score,
             context_limit=dependencies.settings.answer_context_limit,
             max_context_tokens=dependencies.settings.answer_context_token_budget,
+            requires_live_data=bool(state.get("requires_live_data", False)),
         )
         return {
             **result.to_dict(),

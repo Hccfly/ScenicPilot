@@ -22,6 +22,15 @@ def _read_environment(env_file: Path | None) -> dict[str, str]:
     return {**file_values, **os.environ}
 
 
+def _environment_flag(
+    environment: dict[str, str], key: str, default: bool
+) -> bool:
+    raw = environment.get(key)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     scenic_id: str = "zhuhai-chimelong"
@@ -51,6 +60,7 @@ class Settings:
     llm_base_url: str | None = None
     llm_model: str | None = None
     llm_timeout_seconds: float = 20.0
+    nlu_model_enabled: bool = False
     openai_api_key: str | None = field(default=None, repr=False)
     deepseek_api_key: str | None = field(default=None, repr=False)
     planning_max_revisions: int = 2
@@ -198,6 +208,11 @@ class Settings:
                     "SCENICPILOT_LLM_TIMEOUT_SECONDS",
                     defaults.llm_timeout_seconds,
                 )
+            ),
+            nlu_model_enabled=_environment_flag(
+                environment,
+                "SCENICPILOT_NLU_MODEL_ENABLED",
+                defaults.nlu_model_enabled,
             ),
             openai_api_key=environment.get("OPENAI_API_KEY") or None,
             deepseek_api_key=environment.get("DEEPSEEK_API_KEY") or None,

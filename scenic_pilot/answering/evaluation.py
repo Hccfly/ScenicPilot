@@ -22,6 +22,7 @@ class RefusalCase:
     case_id: str
     query: str
     scenic_id: str = "zhuhai-chimelong"
+    requires_live_data: bool = False
 
 
 def load_refusal_cases(path: Path) -> list[RefusalCase]:
@@ -115,6 +116,7 @@ def evaluate_answering(
             min_score=min_score,
             context_limit=context_limit,
             max_context_tokens=max_context_tokens,
+            requires_live_data=case.requires_live_data,
         )
         passed = (
             result.status == "refused"

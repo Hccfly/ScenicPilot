@@ -1,0 +1,34 @@
+{"case_id":"nlu-001","query":"一家三口玩一天，预算 1000 元，怎么安排？","expected_intent":"itinerary","expected_live_data":false,"expected_constraints":{"duration_minutes":480,"party_size":3,"budget":1000.0},"notes":"规则可完整命中"}
+{"case_id":"nlu-002","query":"明天珠海天气怎么样？","expected_intent":"weather","expected_live_data":false,"expected_constraints":{"weather_location":"珠海"},"notes":"天气意图 + 地点槽位"}
+{"case_id":"nlu-003","query":"鲸鲨馆里面有什么可以看","expected_intent":"faq","expected_live_data":false,"expected_constraints":{},"notes":"静态知识 FAQ"}
+{"case_id":"nlu-004","query":"带孩子玩半天，怎么安排？","expected_intent":"itinerary","expected_live_data":false,"expected_constraints":{"duration_minutes":240},"notes":"亲子半日"}
+{"case_id":"nlu-005","query":"从珠海站出发去海洋王国怎么走","expected_intent":"faq","expected_live_data":false,"expected_constraints":{"origin":"珠海站"},"notes":"交通问答，不是行程规划"}
+{"case_id":"nlu-006","query":"帮我排个顺序，先看鲸鲨再吃饭","expected_intent":"itinerary","expected_live_data":false,"expected_constraints":{},"notes":"口语化行程，规则无关键词"}
+{"case_id":"nlu-007","query":"带爸妈随便逛逛，别太累","expected_intent":"itinerary","expected_live_data":false,"expected_constraints":{},"notes":"长辈口语，规则判成 faq"}
+{"case_id":"nlu-008","query":"明儿带娃咋逛","expected_intent":"itinerary","expected_live_data":false,"expected_constraints":{},"notes":"方言化行程问法"}
+{"case_id":"nlu-009","query":"鲸鲨馆现在要排多久？","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"实时排队，规则词表漏检"}
+{"case_id":"nlu-010","query":"海洋王国今天人多挤不挤","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"实时客流口语"}
+{"case_id":"nlu-011","query":"横琴湾酒店今天还有房吗？","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"实时房态口语"}
+{"case_id":"nlu-012","query":"飞船乐园还有票吗？","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"实时余票口语"}
+{"case_id":"nlu-013","query":"晚上八点还有表演吗","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"演出场次属于易变信息"}
+{"case_id":"nlu-014","query":"两大一小逛 6 个小时，预算 800 元","expected_intent":"faq","expected_live_data":false,"expected_constraints":{"duration_minutes":360,"party_size":3,"budget":800.0},"notes":"人数口语，规则抽不到"}
+{"case_id":"nlu-015","query":"预算三百，三个钟头，怎么安排？","expected_intent":"itinerary","expected_live_data":false,"expected_constraints":{"duration_minutes":180,"budget":300.0},"notes":"中文数字，规则抽不到"}
+{"case_id":"nlu-016","query":"我们四个人，玩两个小时，怎么安排","expected_intent":"itinerary","expected_live_data":false,"expected_constraints":{"duration_minutes":120,"party_size":4},"notes":"阿拉伯数字，规则可命中"}
+{"case_id":"nlu-017","query":"帮我看看鲸鲨馆的开放时间","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"开放时间易变"}
+{"case_id":"nlu-018","query":"门票多少钱","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"票价易变"}
+{"case_id":"nlu-019","query":"企鹅酒店离海洋王国远吗","expected_intent":"faq","expected_live_data":false,"expected_constraints":{},"notes":"静态距离常识"}
+{"case_id":"nlu-020","query":"下雨天带老人玩半天怎么安排","expected_intent":"itinerary","expected_live_data":false,"expected_constraints":{"duration_minutes":240},"notes":"规则可命中"}
+{"case_id":"nlu-021","query":"我想先看鲸鲨馆，再去企鹅馆，路线怎么排","expected_intent":"itinerary","expected_live_data":false,"expected_constraints":{},"notes":"路线关键词命中"}
+{"case_id":"nlu-022","query":"现在入园要排多久","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"实时排队口语"}
+{"case_id":"nlu-023","query":"明天海洋王国的演出时间","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"演出时间易变"}
+{"case_id":"nlu-024","query":"推荐一条适合老人的路线","expected_intent":"itinerary","expected_live_data":false,"expected_constraints":{},"notes":"路线关键词命中"}
+{"case_id":"nlu-025","query":"鲸鲨馆这会儿人多不多，要等多久","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"口语化实时排队，无关键词"}
+{"case_id":"nlu-026","query":"海洋王国现在挤不挤","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"口语化实时客流，无关键词"}
+{"case_id":"nlu-027","query":"横琴湾酒店今晚还有空房吗","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"口语化实时房态，无关键词"}
+{"case_id":"nlu-028","query":"飞船乐园今天的票还能买到吗","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"口语化实时余票，无关键词"}
+{"case_id":"nlu-029","query":"企鹅酒店这周末满房了吗","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"口语化满房状态，无关键词"}
+{"case_id":"nlu-030","query":"今晚的烟花几点开始","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"演出场次易变，无关键词"}
+{"case_id":"nlu-031","query":"海洋王国今天开到几点","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"开放时间易变，无关键词"}
+{"case_id":"nlu-032","query":"海洋王国的门票现在多少钱","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"票价易变，无关键词"}
+{"case_id":"nlu-033","query":"现在进园要等多久","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"口语化实时排队，无关键词"}
+{"case_id":"nlu-034","query":"长隆今天人多吗","expected_intent":"faq","expected_live_data":true,"expected_constraints":{},"notes":"口语化实时客流，无关键词"}

@@ -9,3 +9,13 @@
 {"case_id":"ans-ref-009","query":"珠海长隆今天入园人数是多少？","scenic_id":"zhuhai-chimelong"}
 {"case_id":"ans-ref-010","query":"飞船乐园今天的现场余票还有多少？","scenic_id":"zhuhai-chimelong"}
 {"case_id":"ans-ref-011","query":"海洋王国鲸鲨馆的实时排队时间？","scenic_id":"zhuhai-chimelong"}
+{"case_id":"ans-ref-012","query":"鲸鲨馆这会儿人多不多，要等多久","scenic_id":"zhuhai-chimelong","requires_live_data":true}
+{"case_id":"ans-ref-013","query":"海洋王国现在挤不挤","scenic_id":"zhuhai-chimelong","requires_live_data":true}
+{"case_id":"ans-ref-014","query":"横琴湾酒店今晚还有空房吗","scenic_id":"zhuhai-chimelong","requires_live_data":true}
+{"case_id":"ans-ref-015","query":"飞船乐园今天的票还能买到吗","scenic_id":"zhuhai-chimelong","requires_live_data":true}
+{"case_id":"ans-ref-016","query":"企鹅酒店这周末满房了吗","scenic_id":"zhuhai-chimelong","requires_live_data":true}
+{"case_id":"ans-ref-017","query":"今晚的烟花几点开始","scenic_id":"zhuhai-chimelong","requires_live_data":true}
+{"case_id":"ans-ref-018","query":"海洋王国今天开到几点","scenic_id":"zhuhai-chimelong","requires_live_data":true}
+{"case_id":"ans-ref-019","query":"海洋王国的门票现在多少钱","scenic_id":"zhuhai-chimelong","requires_live_data":true}
+{"case_id":"ans-ref-020","query":"现在进园要等多久","scenic_id":"zhuhai-chimelong","requires_live_data":true}
+{"case_id":"ans-ref-021","query":"长隆今天人多吗","scenic_id":"zhuhai-chimelong","requires_live_data":true}

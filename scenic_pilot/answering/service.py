@@ -124,6 +124,7 @@ class GroundedAnswerer:
         min_score: float,
         context_limit: int = 3,
         max_context_tokens: int | None = 2200,
+        requires_live_data: bool = False,
     ) -> tuple[str, list[Citation]]:
         """Compatibility wrapper for callers that only need text and citations."""
 
@@ -133,6 +134,7 @@ class GroundedAnswerer:
             min_score=min_score,
             context_limit=context_limit,
             max_context_tokens=max_context_tokens,
+            requires_live_data=requires_live_data,
         )
         return result.answer, list(result.citations)
 
@@ -144,8 +146,9 @@ class GroundedAnswerer:
         min_score: float,
         context_limit: int = 3,
         max_context_tokens: int | None = 2200,
+        requires_live_data: bool = False,
     ) -> AnswerResult:
-        if any(term in query for term in self._live_only_terms):
+        if requires_live_data or any(term in query for term in self._live_only_terms):
             return self._refusal_result(
                 candidate_count=len(hits),
                 rejection_counts={},
