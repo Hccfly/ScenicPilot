@@ -28,7 +28,7 @@ ScenicPilot 源于我对一个具体问题的持续探索：当景区资料分�
 - 约束验证与最多两轮的确定性行程修订；
 - SQLite 会话恢复、人工审批、请求幂等、工具预算和治理轨迹；
 - CLI、FastAPI、JSON SSE、响应式页面、健康检查和 Docker 单实例部署；
-- 完全离线的单元测试与 60-case 评测门禁。
+- 完全离线的单元测试与 115-case 评测门禁。
 
 ## 核心架构
 
@@ -104,7 +104,7 @@ docker run --rm -p 8000:8000 `
 python -m pytest
 ```
 
-运行 60-case 离线门禁，或定位到分组和单个 case：
+运行 115-case 离线门禁，或定位到分组和单个 case：
 
 ```powershell
 python scripts/evaluate_offline.py
@@ -114,8 +114,8 @@ python scripts/evaluate_offline.py --case-id eval-recovery-004
 
 评测固定使用本地索引、离线模型和离线工具。每个 Agent case 都使用独立 SQLite、`thread_id`、执行账本和工具状态；报告逐 case 保存结构化 `expected/actual`，失败时返回非零退出码。覆盖范围包括：
 
-- 30 条真实问法的检索 Recall@K、MRR、重复率和噪声；
-- 带引用回答、冲突处理、知识边界拒答；
+- 50 条真实问法的检索 Hit@5、多答案 Recall@5、MRR、重复率和噪声；
+- 带引用回答、冲突处理、知识边界与口语化实时信息拒答；
 - 半日/一日行程、预算不足和强制偏好；
 - 超时、异常、空字段、脏类型、负金额、未知来源与空检索；
 - 中断恢复、重复 start/resume、幂等冲突；
@@ -161,6 +161,7 @@ python scripts/evaluate_retrieval.py
 - `SCENICPILOT_TOOL_MODE=auto` 或 `live`：启用 Open-Meteo 天气；
 - `AMAP_API_KEY`：启用高德驾车距离；
 - `SCENICPILOT_LLM_PROVIDER=deepseek` 与 `DEEPSEEK_API_KEY`，或 `openai` 与 `OPENAI_API_KEY`：启用候选重排；
+- `SCENICPILOT_NLU_MODEL_ENABLED=1`：在规则未命中意图时，用同一模型补全意图、约束和实时数据标记；默认关闭；
 - `SCENICPILOT_RETRIEVAL_INDEX_PATH`：加载预先构建的本地 BGE 索引。
 
 系统环境变量优先于 `.env`。`.env` 已被 Git 忽略，真实 Key 不应写入示例配置、镜像或前端。

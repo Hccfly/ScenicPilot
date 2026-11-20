@@ -1,22 +1,24 @@
 # 离线评测与故障注入
 
-这里建立了一个严格的 60-case 离线门禁。评测入口不会读取 `.env` 中的 live 配置：
+这里建立了一个严格的 115-case 离线门禁。评测入口不会读取 `.env` 中的 live 配置：
 真实语料检索只加载本地持久化 BGE 索引，模型固定为 `offline`，工具固定为 `offline`。
 
 ## 1. Case 分布
 
 | 分组 | 数量 | 核心验证 |
 |---|---:|---|
-| `retrieval` | 30 | Recall@5、禁止来源、景区隔离、证据完整度、上下文 token |
-| `trusted_answer` | 10 | 引用绑定、claim 绑定、拒答无引用、决策轨迹 |
-| `planning` | 5 | 结构化 plan、来源白名单、时长、偏好、路线、预算拒绝 |
-| `fault_injection` | 7 | 超时、异常、空结果、缺字段、脏类型、负数金额、模型未知来源 |
-| `recovery_idempotency` | 4 | 重启恢复、人工拒绝、重复 start、重复 resume 与冲突 |
-| `call_budget` | 2 | 0 次和 1 次工具额度，provider 实际调用数与 state 对齐 |
-| `loop_limit` | 2 | 0 次和 1 次修订上限，拒绝并终止 |
+| `retrieval` | 50 | Hit@5、多答案 Recall@5、禁止来源、景区隔离、证据完整度、上下文 token |
+| `trusted_answer` | 31 | 引用绑定、claim 绑定、拒答无引用、口语化实时信息拒答、决策轨迹 |
+| `planning` | 10 | 结构化 plan、来源白名单、时长、偏好、路线、预算拒绝 |
+| `fault_injection` | 11 | 超时、异常、空结果、缺字段、脏类型、负数金额、模型未知来源 |
+| `recovery_idempotency` | 7 | 重启恢复、人工拒绝、重复 start、重复 resume 与冲突 |
+| `call_budget` | 3 | 0 次和 1 次工具额度，provider 实际调用数与 state 对齐 |
+| `loop_limit` | 3 | 0 次和 1 次修订上限，拒绝并终止 |
 
-总数严格为 60，`case_id` 必须唯一。目录定义在
+总数严格为 115，`case_id` 必须唯一。目录定义在
 `data/eval/offline_cases.jsonl`；加载时会验证分组数量和必填字段，避免漏测后仍显示通过。
+其中 15 条检索 case 有 2–5 个可接受来源，通过标准是 Hit@5（命中任一来源），
+Recall@5 只作为覆盖度诊断，避免把合理的替代来源误判成噪声。
 
 ## 2. 隔离策略
 

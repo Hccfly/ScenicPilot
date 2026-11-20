@@ -73,6 +73,11 @@
 {"case_id":"eval-ret-043","group":"retrieval","fixture":"ret-043","description":"省内城轨换乘"}
 {"case_id":"eval-ret-044","group":"retrieval","fixture":"ret-044","description":"广州长隆专线大巴"}
 {"case_id":"eval-ret-045","group":"retrieval","fixture":"ret-045","description":"水晶宫转马规模"}
+{"case_id":"eval-ret-046","group":"retrieval","fixture":"ret-046","description":"双景点对比多答案"}
+{"case_id":"eval-ret-047","group":"retrieval","fixture":"ret-047","description":"五家酒店提前入园多答案"}
+{"case_id":"eval-ret-048","group":"retrieval","fixture":"ret-048","description":"两家酒店到园区路线多答案"}
+{"case_id":"eval-ret-049","group":"retrieval","fixture":"ret-049","description":"双园区表演对比多答案"}
+{"case_id":"eval-ret-050","group":"retrieval","fixture":"ret-050","description":"主题酒店主题对比多答案"}
 {"case_id":"eval-ans-011","group":"trusted_answer","fixture":"ret-031","expectation":"answerable","description":"马戏酒店餐饮带引用回答"}
 {"case_id":"eval-ans-012","group":"trusted_answer","fixture":"ret-033","expectation":"answerable","description":"酒店客房规模带引用回答"}
 {"case_id":"eval-ans-013","group":"trusted_answer","fixture":"ret-040","expectation":"answerable","description":"停车收费易变信息提示"}
@@ -84,6 +89,16 @@
 {"case_id":"eval-ans-019","group":"trusted_answer","fixture":"ans-ref-009","expectation":"refusal","description":"缺少今日入园人数"}
 {"case_id":"eval-ans-020","group":"trusted_answer","fixture":"ans-ref-010","expectation":"refusal","description":"缺少现场余票"}
 {"case_id":"eval-ans-021","group":"trusted_answer","fixture":"ans-ref-011","expectation":"refusal","description":"缺少实时排队时间"}
+{"case_id":"eval-ans-022","group":"trusted_answer","fixture":"ans-ref-012","expectation":"refusal","description":"口语化实时排队拒答"}
+{"case_id":"eval-ans-023","group":"trusted_answer","fixture":"ans-ref-013","expectation":"refusal","description":"口语化实时客流拒答"}
+{"case_id":"eval-ans-024","group":"trusted_answer","fixture":"ans-ref-014","expectation":"refusal","description":"口语化实时房态拒答"}
+{"case_id":"eval-ans-025","group":"trusted_answer","fixture":"ans-ref-015","expectation":"refusal","description":"口语化实时余票拒答"}
+{"case_id":"eval-ans-026","group":"trusted_answer","fixture":"ans-ref-016","expectation":"refusal","description":"口语化满房状态拒答"}
+{"case_id":"eval-ans-027","group":"trusted_answer","fixture":"ans-ref-017","expectation":"refusal","description":"烟花场次拒答"}
+{"case_id":"eval-ans-028","group":"trusted_answer","fixture":"ans-ref-018","expectation":"refusal","description":"当日开放时间拒答"}
+{"case_id":"eval-ans-029","group":"trusted_answer","fixture":"ans-ref-019","expectation":"refusal","description":"当日票价拒答"}
+{"case_id":"eval-ans-030","group":"trusted_answer","fixture":"ans-ref-020","expectation":"refusal","description":"口语化入园排队拒答"}
+{"case_id":"eval-ans-031","group":"trusted_answer","fixture":"ans-ref-021","expectation":"refusal","description":"口语化当日客流拒答"}
 {"case_id":"eval-plan-006","group":"planning","scenario":"three_hour_window","query":"下午两点开始只有 3 个小时，怎么安排？","description":"三小时时间窗口"}
 {"case_id":"eval-plan-007","group":"planning","scenario":"explicit_start_time","query":"上午 10:30 开始，带老人玩半天","description":"显式开始时间"}
 {"case_id":"eval-plan-008","group":"planning","scenario":"senior_half_day","query":"带老人轻松玩半天，怎么安排？","description":"老人半日节奏"}

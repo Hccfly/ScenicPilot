@@ -130,6 +130,7 @@ def evaluate_retriever(
     if not cases:
         raise ValueError("retrieval evaluation requires at least one case")
     per_case: list[dict[str, Any]] = []
+    hits_at_k: list[float] = []
     recalls: list[float] = []
     reciprocal_ranks: list[float] = []
     ndcgs: list[float] = []
@@ -161,6 +162,7 @@ def evaluate_retriever(
                 relevant_ranks.append(index)
                 seen_relevant_sources.add(source_id)
         recall = len(set(source_ids[:recall_k]) & expected) / max(1, len(expected))
+        hit = 1.0 if set(source_ids[:recall_k]) & expected else 0.0
         reciprocal_rank = 1 / relevant_ranks[0] if relevant_ranks else 0.0
         dcg = sum(
             1 / math.log2(index + 1)
@@ -248,6 +250,7 @@ def evaluate_retriever(
         demo_leaks += case_demo_leaks
         forbidden_hits += len(case_forbidden)
         recalls.append(recall)
+        hits_at_k.append(hit)
         reciprocal_ranks.append(reciprocal_rank)
         ndcgs.append(ndcg)
         off_target_rates.append(off_target_rate)
@@ -266,6 +269,7 @@ def evaluate_retriever(
                 "expected_source_ids": list(case.expected_source_ids),
                 "returned_source_ids": source_ids,
                 "relevant_ranks": relevant_ranks,
+                f"hit@{recall_k}": hit,
                 f"recall@{recall_k}": round(recall, 6),
                 f"reciprocal_rank@{ranking_k}": round(reciprocal_rank, 6),
                 f"ndcg@{ranking_k}": round(ndcg, 6),
@@ -303,13 +307,17 @@ def evaluate_retriever(
                 "cross_scenic_leaks": case_cross_leaks,
                 "demo_leaks": case_demo_leaks,
                 "forbidden_hits": case_forbidden,
-                "passed": bool(recall == 1.0 and not case_forbidden),
+                "passed": bool(hit and not case_forbidden),
                 "trace": response.trace,
             }
         )
 
     metrics = {
         "case_count": len(cases),
+        "multi_answer_case_count": sum(
+            len(case.expected_source_ids) > 1 for case in cases
+        ),
+        f"hit@{recall_k}": round(sum(hits_at_k) / len(hits_at_k), 6),
         f"recall@{recall_k}": round(sum(recalls) / len(recalls), 6),
         f"mrr@{ranking_k}": round(
             sum(reciprocal_ranks) / len(reciprocal_ranks), 6

@@ -38,8 +38,8 @@ from scenic_pilot.tools.managed import ToolSuite
 
 
 EVALUATION_GROUP_COUNTS = {
-    "retrieval": 45,
-    "trusted_answer": 21,
+    "retrieval": 50,
+    "trusted_answer": 31,
     "planning": 10,
     "fault_injection": 11,
     "recovery_idempotency": 7,
@@ -566,10 +566,10 @@ class OfflineEvaluator:
         parent_coverage = detail["parent_span_coverage"]
         assertions = (
             _check(
-                "expected_source_recall_at_5",
-                detail["recall@5"] == 1.0,
+                "expected_source_hit_at_5",
+                detail["hit@5"] == 1.0,
                 expected=1.0,
-                actual=detail["recall@5"],
+                actual=detail["hit@5"],
             ),
             _check(
                 "forbidden_sources_absent",
@@ -609,6 +609,7 @@ class OfflineEvaluator:
             "expected_source_ids": list(fixture.expected_source_ids),
             "returned_source_ids": detail["returned_source_ids"],
             "relevant_ranks": detail["relevant_ranks"],
+            "hit_at_5": detail["hit@5"],
             "recall_at_5": detail["recall@5"],
             "reciprocal_rank_at_10": detail["reciprocal_rank@10"],
             "evidence_completeness": detail["evidence_completeness"],
@@ -638,11 +639,13 @@ class OfflineEvaluator:
             query = fixture.query
             scenic_id = fixture.scenic_id
             expected_sources = set(fixture.expected_source_ids)
+            requires_live_data = False
         else:
             fixture = self.refusal_cases[case.fixture or ""]
             query = fixture.query
             scenic_id = fixture.scenic_id
             expected_sources = set()
+            requires_live_data = fixture.requires_live_data
         hits = self.retriever.search(
             query,
             top_k=self.settings.top_k,
@@ -654,6 +657,7 @@ class OfflineEvaluator:
             min_score=self.settings.min_retrieval_score,
             context_limit=self.settings.answer_context_limit,
             max_context_tokens=self.settings.answer_context_token_budget,
+            requires_live_data=requires_live_data,
         )
         citation_ids = {
             int(item.citation_id)

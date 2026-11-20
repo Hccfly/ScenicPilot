@@ -80,6 +80,6 @@ python scripts/demo_product.py --case-id demo-itinerary-hitl
 - 批准后得到结构化行程，相同 resume 幂等键返回同一结果且标记重放；
 - 超出知识范围的实时客流问题返回 `answer_status=refused` 且无引用；
 - 页面、静态资源、readiness 和 SSE 事件均有 API 合同测试；
-- 完整离线测试和 60-case 离线门禁保持通过。
+- 完整离线测试和 115-case 离线门禁保持通过。
 
 部署方式、SQLite 边界和反向代理要求见 [deployment.md](deployment.md)。

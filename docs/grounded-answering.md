@@ -143,7 +143,7 @@ FAQ 分支现在返回：
 # 可信回答阶段 专项规则测试
 python -m pytest tests/test_answering.py
 
-# 使用本地 BGE 正式索引跑 30 条可回答 + 5 条拒答评测
+# 使用本地 BGE 正式索引跑 50 条可回答 + 21 条拒答评测
 python scripts/evaluate_answering.py
 
 # 完整回归
@@ -152,4 +152,4 @@ python -m pip check
 ```
 
 生成报告位于 `data/index/zhuhai-chimelong/answer_eval.json`，属于本地生成物，不提交
-Git。离线评测阶段 再扩展为 100 条端到端样例，并增加模型回答忠实度、原子事实覆盖率和故障注入。
+Git。离线评测阶段 再扩展为 115 条端到端样例，并增加模型回答忠实度、原子事实覆盖率和故障注入。

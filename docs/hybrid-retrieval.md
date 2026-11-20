@@ -263,7 +263,7 @@ include_parent = True
 
 ### 离线评测集与通过标准
 
-检索评测包含 45 条 retrieval-only 查询；端到端评测再扩展到完整的 100 条端到端评测。
+检索评测包含 50 条 retrieval-only 查询（其中 15 条有 2–5 个可接受来源）；端到端评测再扩展到完整的 115 条端到端评测。
 每条样本保存：
 
 ```text
@@ -279,7 +279,8 @@ notes
 建议指标和初始验收线：
 
 ```text
-Recall@5 >= 0.90
+Hit@5 >= 0.98            # 多答案 case 命中任一可接受来源即通过
+Recall@5 >= 0.90         # 覆盖度诊断，不作为通过条件
 MRR@10 >= 0.75
 cross_scenic_leakage = 0
 demo_leakage = 0

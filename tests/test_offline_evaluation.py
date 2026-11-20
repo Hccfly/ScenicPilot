@@ -10,11 +10,11 @@ from scenic_pilot.evaluation.offline import (
 )
 
 
-def test_offline_catalog_has_60_unique_grouped_cases() -> None:
+def test_offline_catalog_has_unique_grouped_cases() -> None:
     cases = load_case_catalog(PROJECT_ROOT / "data" / "eval" / "offline_cases.jsonl")
 
-    assert len(cases) == 100
-    assert len({case.case_id for case in cases}) == 100
+    assert len(cases) == 115
+    assert len({case.case_id for case in cases}) == 115
     assert dict(Counter(case.group for case in cases)) == EVALUATION_GROUP_COUNTS
 
 
