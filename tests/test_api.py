@@ -43,7 +43,16 @@ class ApiTests(unittest.TestCase):
         self.assertIn("/v1/sessions/resume", script.text)
 
     def test_chat_contract(self) -> None:
-        response = self.client.post("/v1/chat", json={"message": "交通信息在哪里核验？"})
+        runtime = ScenicPilotRuntime(
+            default_dependencies(Settings(tool_mode="offline", llm_provider="offline"))
+        )
+        try:
+            with patch("scenic_pilot.api.get_runtime", return_value=runtime):
+                response = self.client.post(
+                    "/v1/chat", json={"message": "交通信息在哪里核验？"}
+                )
+        finally:
+            runtime.close()
         body = response.json()
         self.assertEqual(response.status_code, 200)
         self.assertTrue(body["answer"])
@@ -52,7 +61,16 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(body["trace"][-1], "grounded_answer")
 
     def test_sse_contract(self) -> None:
-        response = self.client.post("/v1/chat/stream", json={"message": "交通怎么查？"})
+        runtime = ScenicPilotRuntime(
+            default_dependencies(Settings(tool_mode="offline", llm_provider="offline"))
+        )
+        try:
+            with patch("scenic_pilot.api.get_runtime", return_value=runtime):
+                response = self.client.post(
+                    "/v1/chat/stream", json={"message": "交通怎么查？"}
+                )
+        finally:
+            runtime.close()
         self.assertEqual(response.status_code, 200)
         self.assertIn("event: started", response.text)
         self.assertIn("event: completed", response.text)
